@@ -21,7 +21,7 @@ export function PaymentsPage() {
   const { data, isLoading } = usePayments();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Payments"
         subtitle={`${data?.total ?? 0} payment records`}
@@ -42,47 +42,81 @@ export function PaymentsPage() {
           <p className="text-sm text-fixflow-muted">No payments recorded yet.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Method</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Outstanding</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.data.map((payment: Payment) => {
-                const invoice = typeof payment.invoiceId === 'object' ? payment.invoiceId as Invoice : null;
-                return (
-                  <TableRow key={payment._id} className="hover:bg-slate-50">
-                    <TableCell className="font-mono text-xs">
-                      {invoice?.invoiceNumber ?? '—'}
-                    </TableCell>
-                    <TableCell className="text-sm capitalize">
-                      {PAYMENT_METHOD_LABELS[payment.method] ?? payment.method}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs text-fixflow-muted">
-                      {payment.referenceNumber}
-                    </TableCell>
-                    <TableCell className="text-right font-medium text-green-600">
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {data.data.map((payment: Payment) => {
+              const invoice = typeof payment.invoiceId === 'object' ? payment.invoiceId as Invoice : null;
+              return (
+                <div key={payment._id} className="rounded-lg border bg-white p-4">
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-fixflow-muted">{invoice?.invoiceNumber ?? '—'}</p>
+                      <p className="text-sm font-medium capitalize mt-0.5">
+                        {PAYMENT_METHOD_LABELS[payment.method] ?? payment.method}
+                      </p>
+                    </div>
+                    <span className="font-semibold text-base text-green-600">
                       {formatCurrency(payment.amount)}
-                    </TableCell>
-                    <TableCell className="text-right text-fixflow-muted">
-                      {formatCurrency(payment.outstandingBalance)}
-                    </TableCell>
-                    <TableCell className="text-xs text-fixflow-muted">
-                      {formatDate(payment.paymentDate)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-fixflow-muted">
+                    <span className="font-mono">{payment.referenceNumber}</span>
+                    <span>{formatDate(payment.paymentDate)}</span>
+                  </div>
+                  {payment.outstandingBalance > 0 && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      Outstanding: {formatCurrency(payment.outstandingBalance)}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block rounded-lg border bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Reference</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead className="text-right">Outstanding</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.data.map((payment: Payment) => {
+                  const invoice = typeof payment.invoiceId === 'object' ? payment.invoiceId as Invoice : null;
+                  return (
+                    <TableRow key={payment._id} className="hover:bg-slate-50">
+                      <TableCell className="font-mono text-xs">
+                        {invoice?.invoiceNumber ?? '—'}
+                      </TableCell>
+                      <TableCell className="text-sm capitalize">
+                        {PAYMENT_METHOD_LABELS[payment.method] ?? payment.method}
+                      </TableCell>
+                      <TableCell className="font-mono text-xs text-fixflow-muted">
+                        {payment.referenceNumber}
+                      </TableCell>
+                      <TableCell className="text-right font-medium text-green-600">
+                        {formatCurrency(payment.amount)}
+                      </TableCell>
+                      <TableCell className="text-right text-fixflow-muted">
+                        {formatCurrency(payment.outstandingBalance)}
+                      </TableCell>
+                      <TableCell className="text-xs text-fixflow-muted">
+                        {formatDate(payment.paymentDate)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );

@@ -47,7 +47,7 @@ export function NewPaymentPage() {
   };
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="max-w-xl mx-auto w-full space-y-6">
       <PageHeader
         title="Record Payment"
         subtitle="Log a payment against an issued invoice"

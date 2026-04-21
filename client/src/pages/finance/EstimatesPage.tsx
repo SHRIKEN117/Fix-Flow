@@ -10,7 +10,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useEstimates } from '@/hooks/useEstimates';
 import { Estimate, Ticket } from '@/types';
@@ -23,7 +22,7 @@ export function EstimatesPage() {
   const { data, isLoading } = useEstimates();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Estimates"
         subtitle={`${data?.total ?? 0} total estimates`}
@@ -48,50 +47,86 @@ export function EstimatesPage() {
           </Button>
         </div>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Estimate #</TableHead>
-                <TableHead>Ticket</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Created</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.data.map((estimate: Estimate) => {
-                const ticket = typeof estimate.ticketId === 'object' ? estimate.ticketId as Ticket : null;
-                return (
-                  <TableRow
-                    key={estimate._id}
-                    className="cursor-pointer hover:bg-slate-50"
-                    onClick={() => navigate(`/finance/estimates/${estimate._id}`)}
-                  >
-                    <TableCell className="font-mono text-xs">{estimate.estimateNumber}</TableCell>
-                    <TableCell className="text-sm">{ticket?.title ?? '—'}</TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize',
-                          ESTIMATE_STATUS_COLORS[estimate.status]
-                        )}
-                      >
-                        {estimate.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(estimate.total)}
-                    </TableCell>
-                    <TableCell className="text-xs text-fixflow-muted">
-                      {formatDate(estimate.createdAt)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {data.data.map((estimate: Estimate) => {
+              const ticket = typeof estimate.ticketId === 'object' ? estimate.ticketId as Ticket : null;
+              return (
+                <div
+                  key={estimate._id}
+                  className="rounded-lg border bg-white p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => navigate(`/finance/estimates/${estimate._id}`)}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-fixflow-muted">{estimate.estimateNumber}</p>
+                      <p className="text-sm font-medium truncate mt-0.5">{ticket?.title ?? '—'}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        'inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize',
+                        ESTIMATE_STATUS_COLORS[estimate.status]
+                      )}
+                    >
+                      {estimate.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-fixflow-muted">
+                    <span>{formatDate(estimate.createdAt)}</span>
+                    <span className="font-semibold text-sm text-foreground">{formatCurrency(estimate.total)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block rounded-lg border bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Estimate #</TableHead>
+                  <TableHead>Ticket</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Created</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.data.map((estimate: Estimate) => {
+                  const ticket = typeof estimate.ticketId === 'object' ? estimate.ticketId as Ticket : null;
+                  return (
+                    <TableRow
+                      key={estimate._id}
+                      className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => navigate(`/finance/estimates/${estimate._id}`)}
+                    >
+                      <TableCell className="font-mono text-xs">{estimate.estimateNumber}</TableCell>
+                      <TableCell className="text-sm">{ticket?.title ?? '—'}</TableCell>
+                      <TableCell>
+                        <span
+                          className={cn(
+                            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize',
+                            ESTIMATE_STATUS_COLORS[estimate.status]
+                          )}
+                        >
+                          {estimate.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(estimate.total)}
+                      </TableCell>
+                      <TableCell className="text-xs text-fixflow-muted">
+                        {formatDate(estimate.createdAt)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );

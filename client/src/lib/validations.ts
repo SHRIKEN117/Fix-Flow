@@ -9,17 +9,39 @@ export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
-  role: z.enum(['admin', 'technician', 'user', 'finance']).default('user'),
+  role: z.enum(['admin', 'technician', 'user']).default('user'),
   phone: z.string().optional(),
   department: z.string().optional(),
+});
+
+export const registerUserSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  phone: z.string().optional(),
+  role: z.literal('user'),
+});
+
+export const registerTechnicianSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  phone: z.string().optional(),
+  specialization: z.enum(
+    ['electrical', 'plumbing', 'hvac', 'structural', 'it', 'general'],
+    { required_error: 'Specialization is required' }
+  ),
+  department: z.string().optional(),
+  role: z.literal('technician'),
 });
 
 export const createTicketSchema = z.object({
   title: z.string().min(3, 'Title must be at least 3 characters').max(200),
   description: z.string().min(10, 'Description must be at least 10 characters').max(5000),
   category: z.enum(['electrical', 'plumbing', 'hvac', 'structural', 'it', 'other']),
-  priority: z.enum(['critical', 'high', 'medium', 'low']),
+  customCategory: z.string().max(200).optional(),
   location: z.string().min(2, 'Location is required').max(200),
+  imageBase64: z.string().min(1, 'An image is required'),
 });
 
 export const updateStatusSchema = z.object({
@@ -31,12 +53,7 @@ export const updateStatusSchema = z.object({
     'ASSIGNED',
     'IN_PROGRESS',
     'ON_HOLD',
-    'PENDING_INSPECTION',
-    'INSPECTION_FAILED',
-    'PENDING_ESTIMATE',
-    'ESTIMATE_APPROVED',
-    'PENDING_INVOICE',
-    'PAYMENT_PENDING',
+    'COMPLETED',
     'CLOSED',
   ]),
   reason: z.string().max(500).optional(),
@@ -83,6 +100,8 @@ export const addCommentSchema = z.object({
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type RegisterUserFormData = z.infer<typeof registerUserSchema>;
+export type RegisterTechnicianFormData = z.infer<typeof registerTechnicianSchema>;
 export type CreateTicketFormData = z.infer<typeof createTicketSchema>;
 export type UpdateStatusFormData = z.infer<typeof updateStatusSchema>;
 export type CreateEstimateFormData = z.infer<typeof createEstimateSchema>;

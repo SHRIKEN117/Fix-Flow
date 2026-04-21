@@ -1,55 +1,64 @@
 import { TicketStatus } from '../models/Ticket.model';
 import { UserRole } from '../models/User.model';
 
-interface TransitionRule {
-  to: TicketStatus[];
+/**
+ * Simplified ticket lifecycle:
+ *
+ *   SUBMITTED → UNDER_REVIEW → APPROVED → ASSIGNED → IN_PROGRESS → COMPLETED → CLOSED
+ *                             → REJECTED
+ *                                  IN_PROGRESS ↔ ON_HOLD
+ *                                  COMPLETED → IN_PROGRESS  (rework)
+ */
+
+interface TransitionAction {
+  to: TicketStatus;
   roles: UserRole[];
+  label: string;
+  variant: 'default' | 'destructive' | 'outline';
 }
 
-type TransitionMap = Partial<Record<TicketStatus, TransitionRule[]>>;
+type TransitionMap = Partial<Record<TicketStatus, TransitionAction[]>>;
 
 export const TRANSITION_MAP: TransitionMap = {
   SUBMITTED: [
-    { to: ['UNDER_REVIEW'], roles: ['admin'] },
-    { to: ['REJECTED'], roles: ['admin'] },
+    { to: 'UNDER_REVIEW', roles: ['admin'], label: 'Start Review', variant: 'default' },
+    { to: 'REJECTED', roles: ['admin'], label: 'Reject', variant: 'destructive' },
   ],
   UNDER_REVIEW: [
-    { to: ['APPROVED'], roles: ['admin'] },
-    { to: ['REJECTED'], roles: ['admin'] },
+    { to: 'APPROVED', roles: ['admin'], label: 'Approve', variant: 'default' },
+    { to: 'REJECTED', roles: ['admin'], label: 'Reject', variant: 'destructive' },
   ],
   APPROVED: [
-    { to: ['ASSIGNED'], roles: ['admin'] },
+    // Assign triggers ASSIGNED via the assign-technician endpoint.
+    // This manual fallback exists if admin wants to move without assigning.
+    { to: 'ASSIGNED', roles: ['admin'], label: 'Mark Assigned', variant: 'default' },
   ],
   ASSIGNED: [
-    { to: ['IN_PROGRESS'], roles: ['technician'] },
+    { to: 'IN_PROGRESS', roles: ['technician'], label: 'Begin Work', variant: 'default' },
   ],
   IN_PROGRESS: [
-    { to: ['ON_HOLD'], roles: ['technician', 'admin'] },
-    { to: ['PENDING_INSPECTION'], roles: ['technician'] },
+    { to: 'ON_HOLD', roles: ['technician', 'admin'], label: 'Put On Hold', variant: 'outline' },
+    { to: 'COMPLETED', roles: ['technician', 'admin'], label: 'Mark Completed', variant: 'default' },
   ],
   ON_HOLD: [
-    { to: ['IN_PROGRESS'], roles: ['technician', 'admin'] },
+    { to: 'IN_PROGRESS', roles: ['technician', 'admin'], label: 'Resume Work', variant: 'default' },
   ],
-  PENDING_INSPECTION: [
-    { to: ['INSPECTION_FAILED'], roles: ['admin'] },
-    { to: ['PENDING_ESTIMATE'], roles: ['admin'] },
-  ],
-  INSPECTION_FAILED: [
-    { to: ['IN_PROGRESS'], roles: ['technician'] },
-  ],
-  PENDING_ESTIMATE: [
-    { to: ['ESTIMATE_APPROVED'], roles: ['finance', 'admin'] },
-  ],
-  ESTIMATE_APPROVED: [
-    { to: ['PENDING_INVOICE'], roles: ['finance'] },
-  ],
-  PENDING_INVOICE: [
-    { to: ['PAYMENT_PENDING'], roles: ['finance'] },
-  ],
-  PAYMENT_PENDING: [
-    { to: ['CLOSED'], roles: ['admin', 'finance'] },
+  COMPLETED: [
+    { to: 'CLOSED', roles: ['admin'], label: 'Close Ticket', variant: 'default' },
+    { to: 'IN_PROGRESS', roles: ['admin'], label: 'Send Back for Rework', variant: 'outline' },
   ],
 };
+
+/** The ordered pipeline stages for the step tracker (excludes REJECTED and ON_HOLD). */
+export const PIPELINE_STAGES: TicketStatus[] = [
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'ASSIGNED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CLOSED',
+];
 
 export interface TransitionValidationResult {
   valid: boolean;
@@ -61,39 +70,45 @@ export function validateTransition(
   toStatus: TicketStatus,
   role: UserRole
 ): TransitionValidationResult {
-  const rules = TRANSITION_MAP[fromStatus];
+  const actions = TRANSITION_MAP[fromStatus];
 
-  if (!rules || rules.length === 0) {
+  if (!actions || actions.length === 0) {
     return { valid: false, reason: `No transitions allowed from status '${fromStatus}'` };
   }
 
-  const matchingRule = rules.find((rule) => rule.to.includes(toStatus));
+  const matchingAction = actions.find((a) => a.to === toStatus);
 
-  if (!matchingRule) {
+  if (!matchingAction) {
     return {
       valid: false,
       reason: `Transition from '${fromStatus}' to '${toStatus}' is not allowed`,
     };
   }
 
-  if (!matchingRule.roles.includes(role)) {
+  if (!matchingAction.roles.includes(role)) {
     return {
       valid: false,
-      reason: `Role '${role}' is not authorized to transition from '${fromStatus}' to '${toStatus}'`,
+      reason: `Role '${role}' is not authorized for this transition`,
     };
   }
 
   return { valid: true };
 }
 
+export interface TransitionActionForClient {
+  to: TicketStatus;
+  label: string;
+  variant: 'default' | 'destructive' | 'outline';
+}
+
 export function getValidTransitions(
   fromStatus: TicketStatus,
   role: UserRole
-): TicketStatus[] {
-  const rules = TRANSITION_MAP[fromStatus];
-  if (!rules) return [];
+): TransitionActionForClient[] {
+  const actions = TRANSITION_MAP[fromStatus];
+  if (!actions) return [];
 
-  return rules
-    .filter((rule) => rule.roles.includes(role))
-    .flatMap((rule) => rule.to);
+  return actions
+    .filter((a) => a.roles.includes(role))
+    .map(({ to, label, variant }) => ({ to, label, variant }));
 }

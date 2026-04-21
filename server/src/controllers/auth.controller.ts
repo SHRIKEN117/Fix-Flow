@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.model';
 import { Technician } from '../models/Technician.model';
@@ -10,19 +10,21 @@ const BCRYPT_ROUNDS = 12;
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: env.nodeEnv === 'production',
-  sameSite: 'strict' as const,
+  // 'none' required when frontend and backend are on different origins (cross-site cookies)
+  sameSite: (env.nodeEnv === 'production' ? 'none' : 'strict') as 'none' | 'strict',
   maxAge: 8 * 60 * 60 * 1000, // 8 hours
 };
 
 export async function register(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { name, email, password, role, phone, department } = req.body as {
+    const { name, email, password, role, phone, department, specialization } = req.body as {
       name: string;
       email: string;
       password: string;
       role: string;
       phone?: string;
       department?: string;
+      specialization?: string;
     };
 
     const existing = await User.findOne({ email });
@@ -33,7 +35,10 @@ export async function register(req: Request, res: Response, next: NextFunction):
 
     // Auto-create Technician profile for technician role
     if (role === 'technician') {
-      await Technician.create({ userId: user._id, specialization: 'General' });
+      await Technician.create({
+        userId: user._id,
+        specialization: specialization?.trim() || 'General',
+      });
     }
 
     const token = jwt.sign(

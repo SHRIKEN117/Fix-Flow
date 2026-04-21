@@ -13,12 +13,12 @@ import { createInvoiceSchema, updateInvoiceSchema } from '../validations/invoice
 
 const router = Router();
 
-router.use(authenticate, authorize('finance', 'admin'));
+router.use(authenticate, authorize('admin'));
 
 router.get('/', listInvoices);
-router.post('/', authorize('finance'), validateBody(createInvoiceSchema), createInvoice);
+router.post('/', validateBody(createInvoiceSchema), createInvoice);
 router.get('/:id', getInvoice);
-router.patch('/:id', authorize('finance'), validateBody(updateInvoiceSchema), updateInvoice);
-router.patch('/:id/issue', authorize('finance'), issueInvoice);
+router.patch('/:id', validateBody(updateInvoiceSchema), updateInvoice);
+router.patch('/:id/issue', issueInvoice);
 
 export default router;

@@ -7,10 +7,10 @@ import { createPaymentSchema } from '../validations/payment.validation';
 
 const router = Router();
 
-router.use(authenticate, authorize('finance', 'admin'));
+router.use(authenticate, authorize('admin'));
 
 router.get('/', listPayments);
-router.post('/', authorize('finance'), validateBody(createPaymentSchema), createPayment);
+router.post('/', validateBody(createPaymentSchema), createPayment);
 router.get('/:id', getPayment);
 
 export default router;

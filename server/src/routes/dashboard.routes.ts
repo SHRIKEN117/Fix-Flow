@@ -7,7 +7,7 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/summary', authorize('admin', 'finance'), getAdminSummary);
+router.get('/summary', authorize('admin'), getAdminSummary);
 router.get('/technician', authorize('admin', 'technician'), getTechnicianDashboard);
 
 export default router;

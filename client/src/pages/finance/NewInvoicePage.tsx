@@ -18,6 +18,7 @@ import { createInvoiceSchema, CreateInvoiceFormData } from '@/lib/validations';
 import { useCreateInvoice } from '@/hooks/useInvoices';
 import { useTickets } from '@/hooks/useTickets';
 import { useEstimates } from '@/hooks/useEstimates';
+import { TAX_RATE } from '@/lib/constants';
 import { Ticket, Estimate } from '@/types';
 
 export function NewInvoicePage() {
@@ -33,7 +34,7 @@ export function NewInvoicePage() {
     formState: { errors },
   } = useForm<CreateInvoiceFormData>({
     resolver: zodResolver(createInvoiceSchema),
-    defaultValues: { taxRate: 0 },
+    defaultValues: { taxRate: TAX_RATE },
   });
 
   const onSubmit = async (data: CreateInvoiceFormData) => {
@@ -46,7 +47,7 @@ export function NewInvoicePage() {
   );
 
   return (
-    <div className="max-w-xl space-y-6">
+    <div className="max-w-xl mx-auto w-full space-y-6">
       <PageHeader
         title="New Invoice"
         subtitle="Generate an invoice for a maintenance ticket"
@@ -105,17 +106,9 @@ export function NewInvoicePage() {
               <Input id="dueDate" type="date" {...register('dueDate')} />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="taxRate">Tax Rate (%)</Label>
-              <Input
-                id="taxRate"
-                type="number"
-                min={0}
-                max={100}
-                step="0.1"
-                defaultValue={0}
-                {...register('taxRate', { valueAsNumber: true })}
-              />
+            <div className="flex items-center justify-between text-sm py-1">
+              <span className="text-fixflow-muted">Tax Rate</span>
+              <span className="font-medium">{TAX_RATE}%</span>
             </div>
 
             <div className="flex justify-end gap-3 pt-2">

@@ -65,7 +65,7 @@ export function SLAPoliciesPage() {
         title="SLA Policies"
         subtitle="Configure response and resolution time targets"
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button
               variant="outline"
               size="sm"
@@ -146,7 +146,7 @@ export function SLAPoliciesPage() {
               {errors.priority && <p className="text-xs text-destructive">{errors.priority.message}</p>}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="responseTimeHours">Response Time (hours) *</Label>
                 <Input

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { ticketsApi, TicketFilters } from '@/api/tickets.api';
 import { TicketStatus } from '@/types';
 import { CreateTicketFormData } from '@/lib/validations';
@@ -16,6 +17,33 @@ export function useTicket(id: string) {
     queryKey: ['tickets', id],
     queryFn: () => ticketsApi.getById(id),
     enabled: !!id,
+  });
+}
+
+export function useDeleteTicket(ticketId: string) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: () => ticketsApi.delete(ticketId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      toast.success('Ticket withdrawn');
+      navigate('/tickets');
+    },
+    onError: (error: any) =>
+      toast.error(error?.response?.data?.message ?? 'Failed to withdraw ticket'),
+  });
+}
+
+export function useSetPriority(ticketId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (priority: string) => ticketsApi.setPriority(ticketId, priority),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets', ticketId] });
+      toast.success('Priority updated');
+    },
+    onError: () => toast.error('Failed to update priority'),
   });
 }
 
@@ -122,10 +150,10 @@ export function useDeleteAttachment(ticketId: string) {
   });
 }
 
-export function useTicketAudit(ticketId: string) {
+export function useTicketAudit(ticketId: string, enabled = true) {
   return useQuery({
     queryKey: ['tickets', ticketId, 'audit'],
     queryFn: () => ticketsApi.getAuditLog(ticketId),
-    enabled: !!ticketId,
+    enabled: !!ticketId && enabled,
   });
 }

@@ -1,6 +1,16 @@
 import { api } from './axios';
 import { ApiResponse, User } from '@/types';
-import { LoginFormData, RegisterFormData } from '@/lib/validations';
+import {
+  LoginFormData,
+  RegisterFormData,
+  RegisterUserFormData,
+  RegisterTechnicianFormData,
+} from '@/lib/validations';
+
+type AnyRegisterFormData =
+  | RegisterFormData
+  | RegisterUserFormData
+  | RegisterTechnicianFormData;
 
 export const authApi = {
   login: async (data: LoginFormData) => {
@@ -8,7 +18,7 @@ export const authApi = {
     return res.data;
   },
 
-  register: async (data: RegisterFormData) => {
+  register: async (data: AnyRegisterFormData) => {
     const res = await api.post<ApiResponse<User>>('/auth/register', data);
     return res.data;
   },

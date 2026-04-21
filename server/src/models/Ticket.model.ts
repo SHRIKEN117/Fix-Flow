@@ -8,12 +8,7 @@ export type TicketStatus =
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'ON_HOLD'
-  | 'PENDING_INSPECTION'
-  | 'INSPECTION_FAILED'
-  | 'PENDING_ESTIMATE'
-  | 'ESTIMATE_APPROVED'
-  | 'PENDING_INVOICE'
-  | 'PAYMENT_PENDING'
+  | 'COMPLETED'
   | 'CLOSED';
 
 export type TicketCategory = 'electrical' | 'plumbing' | 'hvac' | 'structural' | 'it' | 'other';
@@ -26,9 +21,11 @@ export interface ITicket extends Document {
   title: string;
   description: string;
   category: TicketCategory;
+  customCategory?: string;
   priority: TicketPriority;
   location: string;
   status: TicketStatus;
+  imageBase64: string;
   submittedBy: mongoose.Types.ObjectId;
   assignedTo?: mongoose.Types.ObjectId;
   slaPolicy?: mongoose.Types.ObjectId;
@@ -47,12 +44,7 @@ const ALL_STATUSES: TicketStatus[] = [
   'ASSIGNED',
   'IN_PROGRESS',
   'ON_HOLD',
-  'PENDING_INSPECTION',
-  'INSPECTION_FAILED',
-  'PENDING_ESTIMATE',
-  'ESTIMATE_APPROVED',
-  'PENDING_INVOICE',
-  'PAYMENT_PENDING',
+  'COMPLETED',
   'CLOSED',
 ];
 
@@ -66,12 +58,14 @@ const ticketSchema = new Schema<ITicket>(
       enum: ['electrical', 'plumbing', 'hvac', 'structural', 'it', 'other'],
       required: true,
     },
+    customCategory: { type: String, trim: true },
     priority: {
       type: String,
       enum: ['critical', 'high', 'medium', 'low'],
-      required: true,
+      default: 'medium',
     },
     location: { type: String, required: true, trim: true },
+    imageBase64: { type: String, required: true },
     status: {
       type: String,
       enum: ALL_STATUSES,

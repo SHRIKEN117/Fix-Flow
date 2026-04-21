@@ -21,12 +21,13 @@ import { createEstimateSchema, CreateEstimateFormData } from '@/lib/validations'
 import { useCreateEstimate } from '@/hooks/useEstimates';
 import { useTickets } from '@/hooks/useTickets';
 import { formatCurrency } from '@/lib/utils';
+import { TAX_RATE } from '@/lib/constants';
 import { Ticket } from '@/types';
 
 export function NewEstimatePage() {
   const navigate = useNavigate();
   const createEstimate = useCreateEstimate();
-  const { data: ticketsData } = useTickets({ status: 'PENDING_ESTIMATE', limit: 100 });
+  const { data: ticketsData } = useTickets({ limit: 100 });
 
   const {
     register,
@@ -39,21 +40,20 @@ export function NewEstimatePage() {
     resolver: zodResolver(createEstimateSchema),
     defaultValues: {
       items: [{ type: 'labor', description: '', quantity: 1, unitPrice: 0 }],
-      taxRate: 0,
+      taxRate: TAX_RATE,
     },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
   const watchedItems = watch('items');
-  const watchedTaxRate = watch('taxRate') ?? 0;
 
   const subtotal = watchedItems.reduce((sum, item) => {
     const qty = Number(item.quantity) || 0;
     const price = Number(item.unitPrice) || 0;
     return sum + qty * price;
   }, 0);
-  const tax = subtotal * (watchedTaxRate / 100);
+  const tax = subtotal * (TAX_RATE / 100);
   const total = subtotal + tax;
 
   const onSubmit = async (data: CreateEstimateFormData) => {
@@ -62,7 +62,7 @@ export function NewEstimatePage() {
   };
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl mx-auto w-full space-y-6">
       <PageHeader
         title="New Estimate"
         subtitle="Create a cost estimate for a maintenance ticket"
@@ -210,18 +210,7 @@ export function NewEstimatePage() {
                 <span className="font-medium">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2">
-                  <span className="text-fixflow-muted">Tax Rate</span>
-                  <Input
-                    className="h-7 w-20 text-xs text-right"
-                    type="number"
-                    min={0}
-                    max={100}
-                    step="0.1"
-                    {...register('taxRate', { valueAsNumber: true })}
-                  />
-                  <span className="text-fixflow-muted text-xs">%</span>
-                </div>
+                <span className="text-fixflow-muted">Tax ({TAX_RATE}%)</span>
                 <span>{formatCurrency(tax)}</span>
               </div>
               <Separator />

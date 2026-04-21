@@ -98,7 +98,7 @@ export async function getTechnicianDashboard(
     ] = await Promise.all([
       Ticket.find({
         ...technicianFilter,
-        status: { $in: ['ASSIGNED', 'IN_PROGRESS', 'ON_HOLD'] },
+        status: { $in: ['ASSIGNED', 'IN_PROGRESS', 'ON_HOLD', 'COMPLETED'] },
       })
         .populate('submittedBy', 'name')
         .populate('assignedTo', 'name')

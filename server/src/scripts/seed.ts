@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import mongoose from 'mongoose';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { User } from '../models/User.model';
 import { Technician } from '../models/Technician.model';
 import { SLAPolicy } from '../models/SLAPolicy.model';
@@ -9,7 +9,6 @@ const SEED_EMAILS = [
   'admin@fixflow.com',
   'tech@fixflow.com',
   'user@fixflow.com',
-  'finance@fixflow.com',
 ];
 
 const seed = async (): Promise<void> => {
@@ -57,15 +56,6 @@ const seed = async (): Promise<void> => {
     department: 'Facilities',
   });
 
-  await User.create({
-    name: 'Fiona Finance',
-    email: 'finance@fixflow.com',
-    passwordHash,
-    role: 'finance',
-    isActive: true,
-    department: 'Accounting',
-  });
-
   // Technician profile — required for ticket assignment
   await Technician.create({
     userId: technician._id,
@@ -109,7 +99,6 @@ const seed = async (): Promise<void> => {
   console.log('Admin      admin@fixflow.com      FixFlow@2025');
   console.log('Technician tech@fixflow.com       FixFlow@2025');
   console.log('User       user@fixflow.com       FixFlow@2025');
-  console.log('Finance    finance@fixflow.com    FixFlow@2025');
   console.log('─────────────────────────────────────────\n');
 
   await mongoose.connection.close();

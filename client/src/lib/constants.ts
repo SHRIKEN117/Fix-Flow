@@ -8,12 +8,7 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
   ASSIGNED: 'Assigned',
   IN_PROGRESS: 'In Progress',
   ON_HOLD: 'On Hold',
-  PENDING_INSPECTION: 'Pending Inspection',
-  INSPECTION_FAILED: 'Inspection Failed',
-  PENDING_ESTIMATE: 'Pending Estimate',
-  ESTIMATE_APPROVED: 'Estimate Approved',
-  PENDING_INVOICE: 'Pending Invoice',
-  PAYMENT_PENDING: 'Payment Pending',
+  COMPLETED: 'Completed',
   CLOSED: 'Closed',
 };
 
@@ -25,12 +20,7 @@ export const STATUS_COLORS: Record<TicketStatus, string> = {
   ASSIGNED: 'bg-violet-100 text-violet-700',
   IN_PROGRESS: 'bg-amber-100 text-amber-700',
   ON_HOLD: 'bg-orange-100 text-orange-700',
-  PENDING_INSPECTION: 'bg-cyan-100 text-cyan-700',
-  INSPECTION_FAILED: 'bg-rose-100 text-rose-700',
-  PENDING_ESTIMATE: 'bg-yellow-100 text-yellow-700',
-  ESTIMATE_APPROVED: 'bg-teal-100 text-teal-700',
-  PENDING_INVOICE: 'bg-indigo-100 text-indigo-700',
-  PAYMENT_PENDING: 'bg-purple-100 text-purple-700',
+  COMPLETED: 'bg-teal-100 text-teal-700',
   CLOSED: 'bg-green-100 text-green-700',
 };
 
@@ -76,6 +66,9 @@ export const INVOICE_STATUS_COLORS: Record<string, string> = {
   paid: 'bg-green-100 text-green-700',
   partial: 'bg-amber-100 text-amber-700',
 };
+
+/** Fixed tax rate applied to all estimates and invoices (percentage). */
+export const TAX_RATE = 10;
 
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   bank_transfer: 'Bank Transfer',

@@ -49,6 +49,11 @@ export const ticketsApi = {
     return res.data;
   },
 
+  setPriority: async (id: string, priority: string) => {
+    const res = await api.patch<ApiResponse<Ticket>>(`/tickets/${id}/priority`, { priority });
+    return res.data;
+  },
+
   updateStatus: async (id: string, status: TicketStatus, reason?: string) => {
     const res = await api.patch<ApiResponse<Ticket>>(`/tickets/${id}/status`, { status, reason });
     return res.data;

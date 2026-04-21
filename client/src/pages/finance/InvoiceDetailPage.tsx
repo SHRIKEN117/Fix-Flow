@@ -25,10 +25,10 @@ export function InvoiceDetailPage() {
   if (!invoice) return <p className="text-sm text-fixflow-muted">Invoice not found.</p>;
 
   const ticket = typeof invoice.ticketId === 'object' ? invoice.ticketId as Ticket : null;
-  const canIssue = user?.role === 'finance' && invoice.status === 'draft';
+  const canIssue = user?.role === 'admin' && invoice.status === 'draft';
 
   return (
-    <div className="max-w-2xl space-y-6">
+    <div className="max-w-2xl mx-auto w-full space-y-6">
       <PageHeader
         title={invoice.invoiceNumber}
         subtitle={`For: ${ticket?.title ?? 'Unknown Ticket'}`}

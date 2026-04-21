@@ -6,8 +6,16 @@ export const createTicketSchema = Joi.object({
   category: Joi.string()
     .valid('electrical', 'plumbing', 'hvac', 'structural', 'it', 'other')
     .required(),
-  priority: Joi.string().valid('critical', 'high', 'medium', 'low').required(),
+  customCategory: Joi.string().max(200).optional().allow(''),
   location: Joi.string().min(2).max(200).required(),
+  imageBase64: Joi.string().min(1).required().messages({
+    'string.empty': 'An image is required',
+    'any.required': 'An image is required',
+  }),
+});
+
+export const setPrioritySchema = Joi.object({
+  priority: Joi.string().valid('critical', 'high', 'medium', 'low').required(),
 });
 
 export const updateTicketSchema = Joi.object({
@@ -28,12 +36,7 @@ export const updateStatusSchema = Joi.object({
       'ASSIGNED',
       'IN_PROGRESS',
       'ON_HOLD',
-      'PENDING_INSPECTION',
-      'INSPECTION_FAILED',
-      'PENDING_ESTIMATE',
-      'ESTIMATE_APPROVED',
-      'PENDING_INVOICE',
-      'PAYMENT_PENDING',
+      'COMPLETED',
       'CLOSED'
     )
     .required(),

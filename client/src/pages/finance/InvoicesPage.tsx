@@ -22,7 +22,7 @@ export function InvoicesPage() {
   const { data, isLoading } = useInvoices();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <PageHeader
         title="Invoices"
         subtitle={`${data?.total ?? 0} total invoices`}
@@ -43,54 +43,90 @@ export function InvoicesPage() {
           <p className="text-sm text-fixflow-muted">No invoices yet.</p>
         </div>
       ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Invoice #</TableHead>
-                <TableHead>Ticket</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Total</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead>Issued</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.data.map((invoice: Invoice) => {
-                const ticket = typeof invoice.ticketId === 'object' ? invoice.ticketId as Ticket : null;
-                return (
-                  <TableRow
-                    key={invoice._id}
-                    className="cursor-pointer hover:bg-slate-50"
-                    onClick={() => navigate(`/finance/invoices/${invoice._id}`)}
-                  >
-                    <TableCell className="font-mono text-xs">{invoice.invoiceNumber}</TableCell>
-                    <TableCell className="text-sm">{ticket?.title ?? '—'}</TableCell>
-                    <TableCell>
-                      <span
-                        className={cn(
-                          'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize',
-                          INVOICE_STATUS_COLORS[invoice.status]
-                        )}
-                      >
-                        {invoice.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {formatCurrency(invoice.total)}
-                    </TableCell>
-                    <TableCell className="text-xs text-fixflow-muted">
-                      {invoice.dueDate ? formatDate(invoice.dueDate) : '—'}
-                    </TableCell>
-                    <TableCell className="text-xs text-fixflow-muted">
-                      {invoice.issuedAt ? formatDate(invoice.issuedAt) : 'Not issued'}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <>
+          {/* Mobile cards */}
+          <div className="md:hidden space-y-3">
+            {data.data.map((invoice: Invoice) => {
+              const ticket = typeof invoice.ticketId === 'object' ? invoice.ticketId as Ticket : null;
+              return (
+                <div
+                  key={invoice._id}
+                  className="rounded-lg border bg-white p-4 cursor-pointer hover:bg-slate-50 transition-colors"
+                  onClick={() => navigate(`/finance/invoices/${invoice._id}`)}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs text-fixflow-muted">{invoice.invoiceNumber}</p>
+                      <p className="text-sm font-medium truncate mt-0.5">{ticket?.title ?? '—'}</p>
+                    </div>
+                    <span
+                      className={cn(
+                        'inline-flex shrink-0 items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize',
+                        INVOICE_STATUS_COLORS[invoice.status]
+                      )}
+                    >
+                      {invoice.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-fixflow-muted">
+                    <span>Due: {invoice.dueDate ? formatDate(invoice.dueDate) : '—'}</span>
+                    <span className="font-semibold text-sm text-foreground">{formatCurrency(invoice.total)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:block rounded-lg border bg-white overflow-hidden">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Invoice #</TableHead>
+                  <TableHead>Ticket</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead>Due Date</TableHead>
+                  <TableHead>Issued</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.data.map((invoice: Invoice) => {
+                  const ticket = typeof invoice.ticketId === 'object' ? invoice.ticketId as Ticket : null;
+                  return (
+                    <TableRow
+                      key={invoice._id}
+                      className="cursor-pointer hover:bg-slate-50"
+                      onClick={() => navigate(`/finance/invoices/${invoice._id}`)}
+                    >
+                      <TableCell className="font-mono text-xs">{invoice.invoiceNumber}</TableCell>
+                      <TableCell className="text-sm">{ticket?.title ?? '—'}</TableCell>
+                      <TableCell>
+                        <span
+                          className={cn(
+                            'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize',
+                            INVOICE_STATUS_COLORS[invoice.status]
+                          )}
+                        >
+                          {invoice.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {formatCurrency(invoice.total)}
+                      </TableCell>
+                      <TableCell className="text-xs text-fixflow-muted">
+                        {invoice.dueDate ? formatDate(invoice.dueDate) : '—'}
+                      </TableCell>
+                      <TableCell className="text-xs text-fixflow-muted">
+                        {invoice.issuedAt ? formatDate(invoice.issuedAt) : 'Not issued'}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
     </div>
   );

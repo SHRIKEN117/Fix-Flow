@@ -21,14 +21,14 @@ import {
 
 const router = Router();
 
-router.use(authenticate, authorize('finance', 'admin'));
+router.use(authenticate, authorize('admin'));
 
 router.get('/', listEstimates);
-router.post('/', authorize('finance'), validateBody(createEstimateSchema), createEstimate);
+router.post('/', validateBody(createEstimateSchema), createEstimate);
 router.get('/:id', getEstimate);
-router.patch('/:id', authorize('finance'), validateBody(updateEstimateSchema), updateEstimate);
-router.post('/:id/items', authorize('finance'), validateBody(addEstimateItemSchema), addEstimateItem);
-router.delete('/:id/items/:itemId', authorize('finance'), deleteEstimateItem);
+router.patch('/:id', validateBody(updateEstimateSchema), updateEstimate);
+router.post('/:id/items', validateBody(addEstimateItemSchema), addEstimateItem);
+router.delete('/:id/items/:itemId', deleteEstimateItem);
 router.patch('/:id/approve', validateBody(approveRejectEstimateSchema), approveEstimate);
 router.patch('/:id/reject', validateBody(approveRejectEstimateSchema), rejectEstimate);
 

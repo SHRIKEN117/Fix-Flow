@@ -14,7 +14,12 @@ export const env = {
   mongodbUri: requireEnv('MONGODB_URI'),
   jwtSecret: requireEnv('JWT_SECRET'),
   jwtExpiresIn: process.env['JWT_EXPIRES_IN'] ?? '8h',
-  clientUrl: process.env['CLIENT_URL'] ?? 'http://localhost:5173',
+  clientUrl: (process.env['CLIENT_URL'] ?? 'http://localhost:5173').trim(),
   nodeEnv: process.env['NODE_ENV'] ?? 'development',
   uploadDir: process.env['UPLOAD_DIR'] ?? './uploads',
+  // Email (SMTP) — optional; notifications are skipped if not configured
+  smtpHost: process.env['SMTP_HOST'] ?? '',
+  smtpPort: parseInt(process.env['SMTP_PORT'] ?? '587', 10),
+  smtpUser: process.env['SMTP_USER'] ?? '',
+  smtpPass: process.env['SMTP_PASS'] ?? '',
 } as const;

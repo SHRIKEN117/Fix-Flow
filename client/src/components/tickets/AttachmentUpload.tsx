@@ -38,30 +38,50 @@ export function AttachmentUpload({
             return (
               <li
                 key={att._id}
-                className="flex items-center gap-3 rounded-md border p-3 text-sm"
+                className="rounded-md border text-sm overflow-hidden"
               >
-                {isImage ? (
-                  <Image className="h-4 w-4 text-blue-500 shrink-0" />
-                ) : (
-                  <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                {/* Image preview */}
+                {isImage && att.storagePath && (
+                  <a href={att.storagePath} download={att.originalName} target="_blank" rel="noreferrer">
+                    <img
+                      src={att.storagePath}
+                      alt={att.originalName}
+                      className="w-full max-h-48 object-contain bg-slate-50 border-b"
+                    />
+                  </a>
                 )}
-                <div className="flex-1 min-w-0">
-                  <p className="truncate font-medium">{att.originalName}</p>
-                  <p className="text-xs text-fixflow-muted">
-                    {formatFileSize(att.size)} · {uploader?.name ?? 'Unknown'} ·{' '}
-                    {formatDateTime(att.createdAt)}
-                  </p>
+                <div className="flex items-center gap-3 p-3">
+                  {isImage ? (
+                    <Image className="h-4 w-4 text-blue-500 shrink-0" />
+                  ) : (
+                    <FileText className="h-4 w-4 text-red-500 shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <a
+                      href={att.storagePath}
+                      download={att.originalName}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate font-medium hover:underline block"
+                    >
+                      {att.originalName}
+                    </a>
+                    <p className="text-xs text-fixflow-muted">
+                      {formatFileSize(att.size)} · {uploader?.name ?? 'Unknown'} ·{' '}
+                      {formatDateTime(att.createdAt)}
+                    </p>
+                  </div>
+                  {(isOwn || currentUser.role === 'admin') && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-fixflow-muted hover:text-destructive shrink-0"
+                      onClick={() => onDelete(att._id)}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
-                {(isOwn || currentUser.role === 'admin') && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-7 w-7 text-fixflow-muted hover:text-destructive shrink-0"
-                    onClick={() => onDelete(att._id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                )}
               </li>
             );
           })}

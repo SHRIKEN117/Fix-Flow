@@ -9,9 +9,10 @@ import { TicketComment } from '../models/TicketComment.model';
 import { TicketAttachment } from '../models/TicketAttachment.model';
 import { generateAutoNumber } from '../utils/autoNumber';
 import { createAuditEntry } from '../utils/auditLog';
-import { validateTransition, getValidTransitions } from '../utils/transitions';
+import { validateTransition, getValidTransitions, PIPELINE_STAGES } from '../utils/transitions';
 import { computeSLAStatus } from '../utils/slaEngine';
 import { ApiError } from '../utils/ApiError';
+import { sendTicketCreatedEmail, sendTicketUpdateEmail } from '../utils/email';
 
 export async function listTickets(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -30,7 +31,7 @@ export async function listTickets(req: Request, res: Response, next: NextFunctio
     } else if (role === 'user') {
       filter['submittedBy'] = new mongoose.Types.ObjectId(userId);
     }
-    // admin and finance see all
+    // admin sees all
 
     if (status) filter['status'] = status;
     if (priority) filter['priority'] = priority;
@@ -62,13 +63,16 @@ export async function listTickets(req: Request, res: Response, next: NextFunctio
 
 export async function createTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { title, description, category, priority, location } = req.body as {
+    const { title, description, category, customCategory, location, imageBase64 } = req.body as {
       title: string;
       description: string;
       category: string;
-      priority: string;
+      customCategory?: string;
       location: string;
+      imageBase64: string;
     };
+    // Priority is always set by admin — default to 'medium' on creation
+    const priority = 'medium';
 
     const ticketNumber = await generateAutoNumber('TKT');
 
@@ -84,8 +88,10 @@ export async function createTicket(req: Request, res: Response, next: NextFuncti
       title,
       description,
       category,
+      customCategory: category === 'other' ? customCategory : undefined,
       priority,
       location,
+      imageBase64,
       submittedBy: new mongoose.Types.ObjectId(req.user!.userId),
       slaPolicy: slaPolicy?._id,
       slaDeadline,
@@ -101,6 +107,20 @@ export async function createTicket(req: Request, res: Response, next: NextFuncti
     const populated = await Ticket.findById(ticket._id)
       .populate('submittedBy', 'name email')
       .populate('slaPolicy', 'priority resolutionTimeHours');
+
+    // Send confirmation email (non-blocking)
+    const submitter = populated?.submittedBy as unknown as { name: string; email: string } | null;
+    if (submitter) {
+      sendTicketCreatedEmail({
+        to: submitter.email,
+        userName: submitter.name,
+        ticketNumber: ticket.ticketNumber,
+        title: ticket.title,
+        location: ticket.location,
+        category: ticket.category,
+        priority: ticket.priority,
+      });
+    }
 
     res.status(201).json({ success: true, data: populated, message: 'Ticket created' });
   } catch (error) {
@@ -132,9 +152,16 @@ export async function getTicket(req: Request, res: Response, next: NextFunction)
       throw ApiError.forbidden('Access denied');
     }
 
-    const validTransitions = getValidTransitions(ticket.status, role as any);
+    const nextActions = getValidTransitions(ticket.status, role as any);
 
-    res.json({ success: true, data: { ...ticket.toObject(), validTransitions } });
+    res.json({
+      success: true,
+      data: {
+        ...ticket.toObject(),
+        nextActions,
+        pipelineStages: PIPELINE_STAGES,
+      },
+    });
   } catch (error) {
     next(error);
   }
@@ -158,10 +185,66 @@ export async function updateTicket(req: Request, res: Response, next: NextFuncti
 
 export async function deleteTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const ticket = await Ticket.findByIdAndDelete(req.params['id']);
+    const { role, userId } = req.user!;
+    const ticket = await Ticket.findById(req.params['id']);
     if (!ticket) throw ApiError.notFound('Ticket not found');
 
-    res.json({ success: true, message: 'Ticket deleted' });
+    if (role !== 'admin') {
+      if (ticket.submittedBy.toString() !== userId) {
+        throw ApiError.forbidden('You can only withdraw your own tickets');
+      }
+      if (ticket.status !== 'SUBMITTED') {
+        throw ApiError.badRequest('Tickets can only be withdrawn while in SUBMITTED status');
+      }
+    }
+
+    await createAuditEntry({
+      ticketId: ticket._id,
+      actorId: new mongoose.Types.ObjectId(userId),
+      action: 'TICKET_DELETED',
+      fromValue: ticket.status,
+    });
+
+    await ticket.deleteOne();
+    res.json({ success: true, message: 'Ticket withdrawn' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function setPriority(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { priority } = req.body as { priority: string };
+    const { userId } = req.user!;
+
+    const ticket = await Ticket.findById(req.params['id']);
+    if (!ticket) throw ApiError.notFound('Ticket not found');
+
+    const oldPriority = ticket.priority;
+    ticket.priority = priority as any;
+
+    // Recompute SLA policy based on new priority
+    const slaPolicy = await SLAPolicy.findOne({ priority });
+    if (slaPolicy) {
+      ticket.slaPolicy = slaPolicy._id as any;
+      ticket.slaDeadline = new Date(Date.now() + slaPolicy.resolutionTimeHours * 3_600_000);
+    }
+
+    await ticket.save();
+
+    await createAuditEntry({
+      ticketId: ticket._id,
+      actorId: new mongoose.Types.ObjectId(userId),
+      action: 'PRIORITY_CHANGED',
+      fromValue: oldPriority,
+      toValue: priority,
+    });
+
+    const populated = await Ticket.findById(ticket._id)
+      .populate('submittedBy', 'name email')
+      .populate('slaPolicy');
+
+    res.json({ success: true, data: populated, message: `Priority set to ${priority}` });
   } catch (error) {
     next(error);
   }
@@ -213,6 +296,26 @@ export async function updateTicketStatus(
       .populate('submittedBy', 'name email')
       .populate('assignedTo', 'name email')
       .populate('slaPolicy');
+
+    // Send status update email to the ticket submitter (non-blocking)
+    const submitter = populated?.submittedBy as unknown as { name: string; email: string } | null;
+    const assignedUser = populated?.assignedTo as unknown as { _id: string } | null;
+    if (submitter) {
+      sendTicketUpdateEmail({
+        to: submitter.email,
+        userName: submitter.name,
+        ticketNumber: ticket.ticketNumber,
+        title: ticket.title,
+        location: ticket.location,
+        category: ticket.category,
+        priority: ticket.priority,
+        fromStatus,
+        toStatus: newStatus,
+        reason,
+        assignedToUserId: assignedUser?._id?.toString(),
+        ticketId: ticket._id.toString(),
+      });
+    }
 
     res.json({ success: true, data: populated, message: `Status updated to ${newStatus}` });
   } catch (error) {
@@ -266,6 +369,24 @@ export async function assignTicket(req: Request, res: Response, next: NextFuncti
     const populated = await Ticket.findById(ticket._id)
       .populate('submittedBy', 'name email')
       .populate('assignedTo', 'name email');
+
+    // Send assignment email to the ticket submitter (non-blocking)
+    const submitter = populated?.submittedBy as unknown as { name: string; email: string } | null;
+    if (submitter) {
+      sendTicketUpdateEmail({
+        to: submitter.email,
+        userName: submitter.name,
+        ticketNumber: ticket.ticketNumber,
+        title: ticket.title,
+        location: ticket.location,
+        category: ticket.category,
+        priority: ticket.priority,
+        fromStatus: 'APPROVED',
+        toStatus: 'ASSIGNED',
+        assignedToUserId: technicianId,
+        ticketId: ticket._id.toString(),
+      });
+    }
 
     res.json({ success: true, data: populated, message: 'Technician assigned' });
   } catch (error) {
@@ -367,14 +488,20 @@ export async function uploadAttachment(
 
     if (!req.file) throw ApiError.badRequest('No file uploaded');
 
+    const ext = req.file.originalname.includes('.')
+      ? '.' + req.file.originalname.split('.').pop()
+      : '';
+    const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+    const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
+
     const attachment = await TicketAttachment.create({
       ticketId: ticket._id,
       uploadedBy: new mongoose.Types.ObjectId(userId),
-      filename: req.file.filename,
+      filename: uniqueFilename,
       originalName: req.file.originalname,
       mimetype: req.file.mimetype,
       size: req.file.size,
-      storagePath: req.file.path,
+      storagePath: dataUri,
     });
 
     await createAuditEntry({

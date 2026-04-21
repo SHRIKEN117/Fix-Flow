@@ -7,10 +7,10 @@ import {
   FileText,
   Receipt,
   CreditCard,
-  Wrench,
   PlusCircle,
   BarChart3,
   ClipboardList,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthContext } from '@/context/AuthContext';
@@ -28,7 +28,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    roles: ['admin', 'finance'],
+    roles: ['admin'],
   },
   {
     label: 'My Dashboard',
@@ -46,7 +46,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'All Tickets',
     href: '/tickets',
     icon: Ticket,
-    roles: ['admin', 'finance'],
+    roles: ['admin'],
   },
   {
     label: 'My Queue',
@@ -64,7 +64,13 @@ const NAV_ITEMS: NavItem[] = [
     label: 'New Request',
     href: '/tickets/new',
     icon: PlusCircle,
-    roles: ['user', 'technician'],
+    roles: ['user'],
+  },
+  {
+    label: 'New Ticket',
+    href: '/tickets/new',
+    icon: PlusCircle,
+    roles: ['admin'],
   },
   {
     label: 'Users',
@@ -82,23 +88,28 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Estimates',
     href: '/finance/estimates',
     icon: FileText,
-    roles: ['finance', 'admin'],
+    roles: ['admin'],
   },
   {
     label: 'Invoices',
     href: '/finance/invoices',
     icon: Receipt,
-    roles: ['finance', 'admin'],
+    roles: ['admin'],
   },
   {
     label: 'Payments',
     href: '/finance/payments',
     icon: CreditCard,
-    roles: ['finance', 'admin'],
+    roles: ['admin'],
   },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+export function Sidebar({ open, onClose }: SidebarProps) {
   const { user } = useAuthContext();
   const location = useLocation();
 
@@ -107,13 +118,29 @@ export function Sidebar() {
   const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(user.role));
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-sidebar">
+    <aside
+      className={cn(
+        'fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-sidebar transition-transform duration-300 ease-in-out',
+        // Mobile: slide in/out; Desktop: always visible
+        open ? 'translate-x-0' : '-translate-x-full',
+        'md:translate-x-0'
+      )}
+    >
       {/* Logo */}
-      <div className="flex h-16 items-center gap-2 border-b border-sidebar-border px-6">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-fixflow-primary">
-          <Wrench className="h-4 w-4 text-white" />
-        </div>
-        <span className="text-lg font-semibold text-white">FixFlow</span>
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
+        <img
+          src="/logo.png"
+          alt="FixFlow"
+          className="h-9 w-auto object-contain"
+        />
+        {/* Close button — mobile only */}
+        <button
+          onClick={onClose}
+          className="md:hidden text-sidebar-foreground hover:text-white p-1 rounded"
+          aria-label="Close menu"
+        >
+          <X className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -131,6 +158,7 @@ export function Sidebar() {
               <li key={`${item.label}-${item.href}`}>
                 <NavLink
                   to={item.href}
+                  onClick={onClose}
                   className={cn(
                     'flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors',
                     isActive
@@ -150,7 +178,7 @@ export function Sidebar() {
       {/* User info at bottom */}
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-fixflow-primary text-xs font-semibold text-white uppercase">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-fixflow-primary text-xs font-semibold text-white uppercase">
             {user.name.charAt(0)}
           </div>
           <div className="min-w-0 flex-1">

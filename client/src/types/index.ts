@@ -1,6 +1,6 @@
 // ─── Core ───────────────────────────────────────────────────────────────────
 
-export type UserRole = 'admin' | 'technician' | 'user' | 'finance';
+export type UserRole = 'admin' | 'technician' | 'user';
 export type TechnicianAvailability = 'available' | 'busy' | 'off';
 
 export interface User {
@@ -35,13 +35,14 @@ export type TicketStatus =
   | 'ASSIGNED'
   | 'IN_PROGRESS'
   | 'ON_HOLD'
-  | 'PENDING_INSPECTION'
-  | 'INSPECTION_FAILED'
-  | 'PENDING_ESTIMATE'
-  | 'ESTIMATE_APPROVED'
-  | 'PENDING_INVOICE'
-  | 'PAYMENT_PENDING'
+  | 'COMPLETED'
   | 'CLOSED';
+
+export interface NextAction {
+  to: TicketStatus;
+  label: string;
+  variant: 'default' | 'destructive' | 'outline';
+}
 
 export type TicketCategory = 'electrical' | 'plumbing' | 'hvac' | 'structural' | 'it' | 'other';
 export type TicketPriority = 'critical' | 'high' | 'medium' | 'low';
@@ -53,8 +54,10 @@ export interface Ticket {
   title: string;
   description: string;
   category: TicketCategory;
+  customCategory?: string;
   priority: TicketPriority;
   location: string;
+  imageBase64?: string;
   status: TicketStatus;
   submittedBy: User | string;
   assignedTo?: User | string;
@@ -62,7 +65,8 @@ export interface Ticket {
   slaDeadline?: string;
   slaStatus: SLAStatus;
   closedAt?: string;
-  validTransitions?: TicketStatus[];
+  nextActions?: NextAction[];
+  pipelineStages?: TicketStatus[];
   createdAt: string;
   updatedAt: string;
 }

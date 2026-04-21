@@ -7,17 +7,15 @@ import { useAuthContext } from '@/context/AuthContext';
 
 // Auth pages (eager — always needed immediately)
 import { LoginPage } from '@/pages/auth/LoginPage';
-import { RegisterPage } from '@/pages/auth/RegisterPage';
-
+import { RegisterLandingPage } from '@/pages/auth/RegisterLandingPage';
+import { RegisterUserPage } from '@/pages/auth/RegisterUserPage';
+import { RegisterTechnicianPage } from '@/pages/auth/RegisterTechnicianPage';
 // Lazy-loaded page chunks
 const AdminDashboard = lazy(() =>
   import('@/pages/dashboard/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
 );
 const TechnicianDashboard = lazy(() =>
   import('@/pages/dashboard/TechnicianDashboard').then((m) => ({ default: m.TechnicianDashboard }))
-);
-const FinanceDashboard = lazy(() =>
-  import('@/pages/dashboard/FinanceDashboard').then((m) => ({ default: m.FinanceDashboard }))
 );
 const UserDashboard = lazy(() =>
   import('@/pages/dashboard/UserDashboard').then((m) => ({ default: m.UserDashboard }))
@@ -83,7 +81,6 @@ function DashboardRedirect() {
   const { user } = useAuthContext();
   if (!user) return null;
   if (user.role === 'technician') return <Navigate to="/dashboard/technician" replace />;
-  if (user.role === 'finance') return <Navigate to="/dashboard/finance" replace />;
   if (user.role === 'user') return <Navigate to="/dashboard/user" replace />;
   return <Navigate to="/dashboard/admin" replace />;
 }
@@ -95,7 +92,9 @@ export function AppRouter() {
         <Routes>
           {/* Public */}
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/register" element={<RegisterLandingPage />} />
+          <Route path="/register/user" element={<RegisterUserPage />} />
+          <Route path="/register/technician" element={<RegisterTechnicianPage />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
           {/* All authenticated routes live inside AppShell */}
@@ -105,14 +104,9 @@ export function AppRouter() {
               {/* Dashboard hub — redirects by role */}
               <Route path="/dashboard" element={<DashboardRedirect />} />
               <Route path="/dashboard/admin" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<AdminDashboard />} />
-              </Route>
-              <Route path="/dashboard/finance" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
-              }>
-                <Route index element={<FinanceDashboard />} />
               </Route>
               <Route path="/dashboard/technician" element={
                 <ProtectedRoute allowedRoles={['admin', 'technician']} />
@@ -127,49 +121,53 @@ export function AppRouter() {
 
               {/* Tickets */}
               <Route path="/tickets" element={<TicketListPage />} />
-              <Route path="/tickets/new" element={<NewTicketPage />} />
+              <Route path="/tickets/new" element={
+                <ProtectedRoute allowedRoles={['admin', 'user']} />
+              }>
+                <Route index element={<NewTicketPage />} />
+              </Route>
               <Route path="/tickets/:id" element={<TicketDetailPage />} />
 
               {/* Finance */}
               <Route path="/finance/estimates" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<EstimatesPage />} />
               </Route>
               <Route path="/finance/estimates/new" element={
-                <ProtectedRoute allowedRoles={['finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<NewEstimatePage />} />
               </Route>
               <Route path="/finance/estimates/:id" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<EstimateDetailPage />} />
               </Route>
 
               <Route path="/finance/invoices" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<InvoicesPage />} />
               </Route>
               <Route path="/finance/invoices/new" element={
-                <ProtectedRoute allowedRoles={['finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<NewInvoicePage />} />
               </Route>
               <Route path="/finance/invoices/:id" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<InvoiceDetailPage />} />
               </Route>
 
               <Route path="/finance/payments" element={
-                <ProtectedRoute allowedRoles={['admin', 'finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<PaymentsPage />} />
               </Route>
               <Route path="/finance/payments/new" element={
-                <ProtectedRoute allowedRoles={['finance']} />
+                <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<NewPaymentPage />} />
               </Route>

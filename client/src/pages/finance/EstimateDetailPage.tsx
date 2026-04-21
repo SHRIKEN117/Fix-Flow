@@ -31,11 +31,11 @@ export function EstimateDetailPage() {
   const createdBy = typeof estimate.createdBy === 'object' ? estimate.createdBy as User : null;
 
   const canApproveReject =
-    (user?.role === 'admin' || user?.role === 'finance') &&
+    user?.role === 'admin' &&
     (estimate.status === 'draft' || estimate.status === 'submitted');
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-3xl mx-auto w-full space-y-6">
       <PageHeader
         title={estimate.estimateNumber}
         subtitle={`For: ${ticket?.title ?? 'Unknown Ticket'}`}
@@ -47,7 +47,7 @@ export function EstimateDetailPage() {
         }
       />
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span
           className={cn(
             'inline-flex items-center rounded-full px-3 py-1 text-sm font-medium capitalize',
@@ -86,7 +86,8 @@ export function EstimateDetailPage() {
           <CardTitle className="text-sm">Line Items</CardTitle>
         </CardHeader>
         <CardContent>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full min-w-[480px] text-sm">
             <thead>
               <tr className="border-b text-left text-fixflow-muted">
                 <th className="pb-2 font-medium">Description</th>
@@ -108,6 +109,7 @@ export function EstimateDetailPage() {
               ))}
             </tbody>
           </table>
+          </div>
 
           <Separator className="my-4" />
 

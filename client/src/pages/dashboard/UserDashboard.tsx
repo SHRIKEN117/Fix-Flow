@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusCircle, Ticket, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import { PageHeader } from '@/components/layout/PageHeader';
 import { TicketStatusBadge } from '@/components/tickets/TicketStatusBadge';
 import { TicketPriorityBadge } from '@/components/tickets/TicketPriorityBadge';
 import { SLABadge } from '@/components/sla/SLABadge';
+import { NewTicketModal } from '@/components/tickets/NewTicketModal';
 import { useTickets } from '@/hooks/useTickets';
 import { useAuthContext } from '@/context/AuthContext';
 import { formatDate } from '@/lib/utils';
@@ -15,6 +17,7 @@ import { Ticket as TicketType } from '@/types';
 export function UserDashboard() {
   const navigate = useNavigate();
   const { user } = useAuthContext();
+  const [newTicketOpen, setNewTicketOpen] = useState(false);
 
   const { data, isLoading } = useTickets({ limit: 50 });
 
@@ -27,11 +30,13 @@ export function UserDashboard() {
 
   return (
     <div className="space-y-6">
+      <NewTicketModal open={newTicketOpen} onOpenChange={setNewTicketOpen} />
+
       <PageHeader
         title={`Welcome, ${user?.name ?? 'User'}`}
         subtitle="Here's an overview of your maintenance requests"
         action={
-          <Button onClick={() => navigate('/tickets/new')} className="gap-2">
+          <Button onClick={() => setNewTicketOpen(true)} className="gap-2">
             <PlusCircle className="h-4 w-4" />
             New Ticket
           </Button>
@@ -105,17 +110,17 @@ export function UserDashboard() {
               <p className="text-xs text-fixflow-muted mt-1">
                 Submit your first maintenance request to get started.
               </p>
-              <Button className="mt-4 gap-2" onClick={() => navigate('/tickets/new')}>
+              <Button className="mt-4 gap-2" onClick={() => setNewTicketOpen(true)}>
                 <PlusCircle className="h-4 w-4" />
                 New Ticket
               </Button>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="space-y-1">
               {tickets.slice(0, 10).map((ticket) => (
                 <div
                   key={ticket._id}
-                  className="flex items-center justify-between py-3 cursor-pointer hover:bg-slate-50 -mx-6 px-6 transition-colors"
+                  className="flex items-center justify-between rounded-md p-3 cursor-pointer hover:bg-slate-50 transition-colors gap-3"
                   onClick={() => navigate(`/tickets/${ticket._id}`)}
                 >
                   <div className="min-w-0 flex-1">
@@ -124,10 +129,12 @@ export function UserDashboard() {
                       #{ticket.ticketNumber} · {formatDate(ticket.createdAt)}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 ml-4 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                     <TicketPriorityBadge priority={ticket.priority} />
                     <TicketStatusBadge status={ticket.status} />
-                    <SLABadge status={ticket.slaStatus} />
+                    <span className="hidden sm:block">
+                      <SLABadge status={ticket.slaStatus} />
+                    </span>
                   </div>
                 </div>
               ))}

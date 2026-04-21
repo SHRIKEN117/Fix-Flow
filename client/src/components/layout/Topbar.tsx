@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, ChevronDown, Bell } from 'lucide-react';
+import { LogOut, User, ChevronDown, Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -13,7 +13,11 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
-export function Topbar() {
+interface TopbarProps {
+  onMenuClick: () => void;
+}
+
+export function Topbar({ onMenuClick }: TopbarProps) {
   const { user, logout } = useAuthContext();
   const navigate = useNavigate();
 
@@ -29,16 +33,23 @@ export function Topbar() {
   if (!user) return null;
 
   return (
-    <header className="fixed left-60 right-0 top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-6">
-      {/* Left: could be breadcrumbs */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-fixflow-muted">
+    <header className="fixed left-0 md:left-60 right-0 top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 sm:px-6">
+      {/* Left: hamburger (mobile) + welcome text */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onMenuClick}
+          className="md:hidden p-1.5 rounded-md text-slate-500 hover:bg-slate-100 transition-colors"
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <span className="hidden sm:block text-sm text-fixflow-muted">
           Welcome back, <span className="font-medium text-foreground">{user.name}</span>
         </span>
       </div>
 
       {/* Right: actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-4 w-4" />
         </Button>

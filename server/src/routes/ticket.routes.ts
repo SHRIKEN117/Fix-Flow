@@ -7,6 +7,7 @@ import {
   deleteTicket,
   updateTicketStatus,
   assignTicket,
+  setPriority,
   listComments,
   addComment,
   deleteComment,
@@ -25,6 +26,7 @@ import {
   updateStatusSchema,
   assignTicketSchema,
   addCommentSchema,
+  setPrioritySchema,
 } from '../validations/ticket.validation';
 
 const router = Router();
@@ -32,12 +34,13 @@ const router = Router();
 router.use(authenticate);
 
 router.get('/', listTickets);
-router.post('/', authorize('admin', 'user', 'technician'), validateBody(createTicketSchema), createTicket);
+router.post('/', authorize('admin', 'user'), validateBody(createTicketSchema), createTicket);
 router.get('/:id', getTicket);
 router.patch('/:id', authorize('admin'), validateBody(updateTicketSchema), updateTicket);
-router.delete('/:id', authorize('admin'), deleteTicket);
+router.delete('/:id', deleteTicket);
 router.patch('/:id/status', validateBody(updateStatusSchema), updateTicketStatus);
 router.post('/:id/assign', authorize('admin'), validateBody(assignTicketSchema), assignTicket);
+router.patch('/:id/priority', authorize('admin'), validateBody(setPrioritySchema), setPriority);
 
 // Comments
 router.get('/:id/comments', listComments);
