@@ -1,14 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { ticketsApi, TicketFilters } from '@/api/tickets.api';
+import { ticketsApi, TicketFilters, CreateTicketPayload } from '@/api/tickets.api';
 import { TicketStatus } from '@/types';
-import { CreateTicketFormData } from '@/lib/validations';
 import { toast } from 'sonner';
 
 export function useTickets(filters: TicketFilters = {}) {
   return useQuery({
     queryKey: ['tickets', filters],
     queryFn: () => ticketsApi.list(filters),
+    refetchInterval: 30_000,
   });
 }
 
@@ -17,6 +17,7 @@ export function useTicket(id: string) {
     queryKey: ['tickets', id],
     queryFn: () => ticketsApi.getById(id),
     enabled: !!id,
+    refetchInterval: 30_000,
   });
 }
 
@@ -50,7 +51,7 @@ export function useSetPriority(ticketId: string) {
 export function useCreateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: CreateTicketFormData) => ticketsApi.create(data),
+    mutationFn: (data: CreateTicketPayload) => ticketsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
       toast.success('Ticket created successfully');

@@ -35,8 +35,21 @@ export const usersApi = {
     return res.data;
   },
 
-  listTechnicians: async () => {
-    const res = await api.get<ApiResponse<TechnicianProfile[]>>('/users/technicians');
+  create: async (data: { name: string; email: string; password: string; role: string }) => {
+    const res = await api.post<ApiResponse<User>>('/users', data);
+    return res.data;
+  },
+
+  delete: async (id: string) => {
+    const res = await api.delete<ApiResponse<null>>(`/users/${id}`);
+    return res.data;
+  },
+
+  listTechnicians: async (category?: string) => {
+    const url = category
+      ? `/users/technicians?category=${encodeURIComponent(category)}`
+      : '/users/technicians';
+    const res = await api.get<ApiResponse<TechnicianProfile[]>>(url);
     return res.data;
   },
 };

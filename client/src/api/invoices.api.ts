@@ -27,4 +27,11 @@ export const invoicesApi = {
     const res = await api.patch<ApiResponse<Invoice>>(`/invoices/${id}/issue`);
     return res.data;
   },
+
+  convertFromEstimate: async (estimateId: string, dueDate?: string) => {
+    const res = await api.post<ApiResponse<Invoice>>(`/invoices/from-estimate/${estimateId}`, {
+      dueDate,
+    });
+    return res.data;
+  },
 };

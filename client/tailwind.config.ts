@@ -47,16 +47,16 @@ const config: Config = {
         },
         // FixFlow Design Tokens
         sidebar: {
-          DEFAULT: '#0F172A',
-          foreground: '#CBD5E1',
-          active: '#1E293B',
-          border: '#1E293B',
+          DEFAULT: '#111827',
+          foreground: '#9CA3AF',
+          active: '#1F2937',
+          border: '#1F2937',
         },
-        surface: '#F8FAFC',
+        surface: '#F3F4F8',
         fixflow: {
-          primary: '#1C4ED8',
-          border: '#E2E8F0',
-          muted: '#64748B',
+          primary: '#4F46E5',
+          border: '#E5E7EB',
+          muted: '#6B7280',
         },
       },
       borderRadius: {

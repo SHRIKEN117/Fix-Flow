@@ -6,8 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { useInvoice, useIssueInvoice } from '@/hooks/useInvoices';
+import { useEstimate } from '@/hooks/useEstimates';
 import { useAuthContext } from '@/context/AuthContext';
-import { Invoice, Ticket } from '@/types';
+import { Invoice, Ticket, Estimate, EstimateItem } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { INVOICE_STATUS_COLORS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
@@ -19,12 +20,21 @@ export function InvoiceDetailPage() {
   const { data, isLoading } = useInvoice(id!);
   const issue = useIssueInvoice(id!);
 
-  if (isLoading) return <Skeleton className="h-96 w-full" />;
+  const invoice = data?.data as Invoice | undefined;
+  const linkedEstimateId =
+    invoice?.estimateId
+      ? typeof invoice.estimateId === 'string'
+        ? invoice.estimateId
+        : (invoice.estimateId as Estimate)._id
+      : undefined;
 
-  const invoice = data?.data as Invoice;
+  const { data: estimateData } = useEstimate(linkedEstimateId ?? '');
+
+  if (isLoading) return <Skeleton className="h-96 w-full" />;
   if (!invoice) return <p className="text-sm text-fixflow-muted">Invoice not found.</p>;
 
   const ticket = typeof invoice.ticketId === 'object' ? invoice.ticketId as Ticket : null;
+  const linkedEstimate = estimateData?.data as Estimate | undefined;
   const canIssue = user?.role === 'admin' && invoice.status === 'draft';
 
   return (
@@ -62,12 +72,39 @@ export function InvoiceDetailPage() {
         )}
       </div>
 
+      {/* Invoice meta */}
       <Card>
         <CardContent className="pt-6 space-y-3 text-sm">
           <div className="flex justify-between">
             <span className="text-fixflow-muted">Invoice Number</span>
             <span className="font-mono">{invoice.invoiceNumber}</span>
           </div>
+          {ticket && (
+            <div className="flex justify-between">
+              <span className="text-fixflow-muted">Ticket</span>
+              <button
+                onClick={() =>
+                  navigate(
+                    `/tickets/${typeof invoice.ticketId === 'string' ? invoice.ticketId : (invoice.ticketId as Ticket)._id}`
+                  )
+                }
+                className="text-fixflow-primary hover:underline"
+              >
+                {ticket.ticketNumber}
+              </button>
+            </div>
+          )}
+          {linkedEstimate && (
+            <div className="flex justify-between">
+              <span className="text-fixflow-muted">From Estimate</span>
+              <button
+                onClick={() => navigate(`/finance/estimates/${linkedEstimate._id}`)}
+                className="text-fixflow-primary hover:underline font-mono"
+              >
+                {linkedEstimate.estimateNumber}
+              </button>
+            </div>
+          )}
           {invoice.issuedAt && (
             <div className="flex justify-between">
               <span className="text-fixflow-muted">Issued Date</span>
@@ -80,7 +117,54 @@ export function InvoiceDetailPage() {
               <span>{formatDate(invoice.dueDate)}</span>
             </div>
           )}
-          <Separator />
+          {invoice.paidAt && (
+            <div className="flex justify-between">
+              <span className="text-fixflow-muted">Paid Date</span>
+              <span>{formatDate(invoice.paidAt)}</span>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Line items from linked estimate */}
+      {linkedEstimate && (linkedEstimate.items ?? []).length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Line Items</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto -mx-6 px-6">
+              <table className="w-full min-w-[400px] text-sm">
+                <thead>
+                  <tr className="border-b text-left text-fixflow-muted">
+                    <th className="pb-2 font-medium">Description</th>
+                    <th className="pb-2 font-medium">Type</th>
+                    <th className="pb-2 text-right font-medium">Qty</th>
+                    <th className="pb-2 text-right font-medium">Unit Price</th>
+                    <th className="pb-2 text-right font-medium">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {(linkedEstimate.items ?? []).map((item: EstimateItem) => (
+                    <tr key={item._id}>
+                      <td className="py-3">{item.description}</td>
+                      <td className="py-3 capitalize text-fixflow-muted">{item.type}</td>
+                      <td className="py-3 text-right">{item.quantity}</td>
+                      <td className="py-3 text-right">{formatCurrency(item.unitPrice)}</td>
+                      <td className="py-3 text-right font-medium">{formatCurrency(item.lineTotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Separator className="my-4" />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Totals */}
+      <Card>
+        <CardContent className="pt-6 space-y-1.5 text-sm">
           <div className="flex justify-between">
             <span className="text-fixflow-muted">Subtotal</span>
             <span>{formatCurrency(invoice.subtotal)}</span>
@@ -89,7 +173,7 @@ export function InvoiceDetailPage() {
             <span className="text-fixflow-muted">Tax</span>
             <span>{formatCurrency(invoice.tax)}</span>
           </div>
-          <Separator />
+          <Separator className="my-2" />
           <div className="flex justify-between font-semibold text-base">
             <span>Total</span>
             <span>{formatCurrency(invoice.total)}</span>

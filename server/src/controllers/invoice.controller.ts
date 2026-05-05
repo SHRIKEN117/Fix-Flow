@@ -147,3 +147,55 @@ export async function issueInvoice(req: Request, res: Response, next: NextFuncti
     next(error);
   }
 }
+
+export async function convertFromEstimate(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> {
+  try {
+    const { estimateId } = req.params;
+    const { dueDate } = req.body as { dueDate?: string };
+    const { userId } = req.user!;
+
+    const estimate = await Estimate.findById(estimateId);
+    if (!estimate) throw ApiError.notFound('Estimate not found');
+    if (estimate.status !== 'approved') {
+      throw ApiError.badRequest('Only approved estimates can be converted to invoices');
+    }
+
+    const existing = await Invoice.findOne({ estimateId: estimate._id });
+    if (existing) {
+      throw ApiError.conflict(`Invoice ${existing.invoiceNumber} already exists for this estimate`);
+    }
+
+    const invoiceNumber = await generateAutoNumber('INV');
+
+    const invoice = await Invoice.create({
+      invoiceNumber,
+      ticketId: estimate.ticketId,
+      estimateId: estimate._id,
+      createdBy: new mongoose.Types.ObjectId(userId),
+      subtotal: estimate.subtotal,
+      tax: estimate.tax,
+      total: estimate.total,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
+    });
+
+    await createAuditEntry({
+      ticketId: estimate.ticketId,
+      actorId: new mongoose.Types.ObjectId(userId),
+      action: 'INVOICE_CREATED',
+      metadata: { invoiceNumber, estimateId, total: estimate.total },
+    });
+
+    const populated = await Invoice.findById(invoice._id)
+      .populate('ticketId', 'ticketNumber title')
+      .populate('estimateId', 'estimateNumber total')
+      .populate('createdBy', 'name email');
+
+    res.status(201).json({ success: true, data: populated, message: 'Invoice created from estimate' });
+  } catch (error) {
+    next(error);
+  }
+}

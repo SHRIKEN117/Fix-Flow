@@ -11,6 +11,7 @@ interface MetricCardProps {
   icon: ReactNode;
   iconColor?: string;
   className?: string;
+  onClick?: () => void;
 }
 
 export function MetricCard({
@@ -21,13 +22,17 @@ export function MetricCard({
   icon,
   iconColor = 'bg-blue-50 text-blue-600',
   className,
+  onClick,
 }: MetricCardProps) {
   const hasTrend = trend !== undefined;
   const isPositive = hasTrend && trend > 0;
   const isNegative = hasTrend && trend < 0;
 
   return (
-    <Card className={cn('hover:shadow-md transition-shadow', className)}>
+    <Card
+      className={cn('hover:shadow-md transition-shadow', onClick && 'cursor-pointer', className)}
+      onClick={onClick}
+    >
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="flex-1">

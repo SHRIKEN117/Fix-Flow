@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import bcrypt from 'bcryptjs';
 import { User, UserRole } from '../models/User.model';
 import { Technician } from '../models/Technician.model';
 import { ApiError } from '../utils/ApiError';
@@ -135,8 +136,68 @@ export async function activateUser(req: Request, res: Response, next: NextFuncti
   }
 }
 
+export async function createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    const { name, email, password, role } = req.body as {
+      name: string;
+      email: string;
+      password: string;
+      role: UserRole;
+    };
+
+    const existing = await User.findOne({ email: email.toLowerCase() });
+    if (existing) throw ApiError.conflict('A user with this email already exists');
+
+    const passwordHash = await bcrypt.hash(password, 12);
+    const user = await User.create({ name, email: email.toLowerCase(), passwordHash, role });
+
+    if (role === 'technician') {
+      await Technician.create({ userId: user._id, specialization: 'General' });
+    }
+
+    const { passwordHash: _, ...userObj } = user.toObject();
+    res.status(201).json({ success: true, data: userObj, message: 'User created' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+  try {
+    if (req.params['id'] === req.user!.userId) {
+      throw ApiError.badRequest('Cannot delete your own account');
+    }
+
+    const user = await User.findByIdAndDelete(req.params['id']);
+    if (!user) throw ApiError.notFound('User not found');
+
+    // Clean up technician profile if present
+    await Technician.findOneAndDelete({ userId: user._id });
+
+    res.json({ success: true, message: 'User deleted' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function listTechnicians(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    const { category } = req.query as { category?: string };
+
+    if (category) {
+      const technicians = await Technician.find({
+        $or: [
+          { specialization: new RegExp(`^${category}$`, 'i') },
+          { specialization: /^general$/i },
+        ],
+      })
+        .populate('userId', '-passwordHash')
+        .sort({ currentWorkload: 1 });
+
+      res.json({ success: true, data: technicians });
+      return;
+    }
+
     const technicians = await Technician.find()
       .populate('userId', '-passwordHash')
       .sort({ currentWorkload: 1 });

@@ -28,11 +28,6 @@ export const TRANSITION_MAP: TransitionMap = {
     { to: 'APPROVED', roles: ['admin'], label: 'Approve', variant: 'default' },
     { to: 'REJECTED', roles: ['admin'], label: 'Reject', variant: 'destructive' },
   ],
-  APPROVED: [
-    // Assign triggers ASSIGNED via the assign-technician endpoint.
-    // This manual fallback exists if admin wants to move without assigning.
-    { to: 'ASSIGNED', roles: ['admin'], label: 'Mark Assigned', variant: 'default' },
-  ],
   ASSIGNED: [
     { to: 'IN_PROGRESS', roles: ['technician'], label: 'Begin Work', variant: 'default' },
   ],

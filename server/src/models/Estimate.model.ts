@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from 'mongoose';
 
-export type EstimateStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+export type EstimateStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'revision_requested';
 
 export interface IEstimate extends Document {
   _id: mongoose.Types.ObjectId;
@@ -10,6 +10,7 @@ export interface IEstimate extends Document {
   status: EstimateStatus;
   approvedBy?: mongoose.Types.ObjectId;
   approvedAt?: Date;
+  revisionNotes?: string;
   subtotal: number;
   tax: number;
   total: number;
@@ -25,11 +26,12 @@ const estimateSchema = new Schema<IEstimate>(
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     status: {
       type: String,
-      enum: ['draft', 'submitted', 'approved', 'rejected'],
+      enum: ['draft', 'submitted', 'approved', 'rejected', 'revision_requested'],
       default: 'draft',
     },
     approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
     approvedAt: { type: Date },
+    revisionNotes: { type: String, trim: true },
     subtotal: { type: Number, required: true, default: 0 },
     tax: { type: Number, required: true, default: 0 },
     total: { type: Number, required: true, default: 0 },

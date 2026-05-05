@@ -15,6 +15,18 @@ export type TicketCategory = 'electrical' | 'plumbing' | 'hvac' | 'structural' |
 export type TicketPriority = 'critical' | 'high' | 'medium' | 'low';
 export type SLAStatus = 'on_track' | 'at_risk' | 'breached';
 
+export interface IAIAnalysis {
+  category: string;
+  severity: string;
+  issueType: string;
+  description: string;
+  estimatedRepairTime: string;
+  requiredTools: string[];
+  safetyPrecautions: string[];
+  confidence: number;
+  analyzedAt: Date;
+}
+
 export interface ITicket extends Document {
   _id: mongoose.Types.ObjectId;
   ticketNumber: string;
@@ -32,6 +44,7 @@ export interface ITicket extends Document {
   slaDeadline?: Date;
   slaStatus: SLAStatus;
   closedAt?: Date;
+  aiAnalysis?: IAIAnalysis;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +94,17 @@ const ticketSchema = new Schema<ITicket>(
       default: 'on_track',
     },
     closedAt: { type: Date },
+    aiAnalysis: {
+      category: String,
+      severity: String,
+      issueType: String,
+      description: String,
+      estimatedRepairTime: String,
+      requiredTools: [String],
+      safetyPrecautions: [String],
+      confidence: Number,
+      analyzedAt: Date,
+    },
   },
   { timestamps: true }
 );

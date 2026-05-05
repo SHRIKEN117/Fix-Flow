@@ -22,4 +22,7 @@ export const env = {
   smtpPort: parseInt(process.env['SMTP_PORT'] ?? '587', 10),
   smtpUser: process.env['SMTP_USER'] ?? '',
   smtpPass: process.env['SMTP_PASS'] ?? '',
+  // AI image analysis — optional; feature is off unless AI_ANALYSIS_ENABLED=true
+  anthropicApiKey: process.env['ANTHROPIC_API_KEY'] ?? '',
+  aiAnalysisEnabled: process.env['AI_ANALYSIS_ENABLED'] === 'true',
 } as const;

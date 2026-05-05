@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -36,18 +36,35 @@ const ALL_STATUSES: TicketStatus[] = [
 
 const ALL_SENTINEL = '__all__';
 
+const SLA_STATUSES = ['on_track', 'at_risk', 'breached'] as const;
+const SLA_LABELS: Record<string, string> = {
+  on_track: 'On Track',
+  at_risk: 'At Risk',
+  breached: 'Breached',
+};
+
 export function TicketListPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuthContext();
-  const [statusFilter, setStatusFilter] = useState<string>(ALL_SENTINEL);
+  const initialStatus = searchParams.get('status');
+  const initialSlaStatus = searchParams.get('slaStatus');
+  const [statusFilter, setStatusFilter] = useState<string>(
+    initialStatus && ALL_STATUSES.includes(initialStatus as TicketStatus) ? initialStatus : ALL_SENTINEL
+  );
   const [priorityFilter, setPriorityFilter] = useState<string>(ALL_SENTINEL);
+  const [slaStatusFilter, setSlaStatusFilter] = useState<string>(
+    initialSlaStatus && SLA_STATUSES.includes(initialSlaStatus as typeof SLA_STATUSES[number]) ? initialSlaStatus : ALL_SENTINEL
+  );
 
   const activeStatus = statusFilter === ALL_SENTINEL ? undefined : statusFilter as TicketStatus;
   const activePriority = priorityFilter === ALL_SENTINEL ? undefined : priorityFilter;
+  const activeSlaStatus = slaStatusFilter === ALL_SENTINEL ? undefined : slaStatusFilter;
 
   const { data, isLoading } = useTickets({
     status: activeStatus,
     priority: activePriority,
+    slaStatus: activeSlaStatus,
     limit: 50,
   });
 
@@ -98,11 +115,23 @@ export function TicketListPage() {
           </SelectContent>
         </Select>
 
-        {(statusFilter !== ALL_SENTINEL || priorityFilter !== ALL_SENTINEL) && (
+        <Select value={slaStatusFilter} onValueChange={setSlaStatusFilter}>
+          <SelectTrigger className="w-36">
+            <SelectValue placeholder="All SLA" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value={ALL_SENTINEL}>All SLA</SelectItem>
+            {SLA_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{SLA_LABELS[s]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {(statusFilter !== ALL_SENTINEL || priorityFilter !== ALL_SENTINEL || slaStatusFilter !== ALL_SENTINEL) && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setStatusFilter(ALL_SENTINEL); setPriorityFilter(ALL_SENTINEL); }}
+            onClick={() => { setStatusFilter(ALL_SENTINEL); setPriorityFilter(ALL_SENTINEL); setSlaStatusFilter(ALL_SENTINEL); }}
           >
             Clear
           </Button>

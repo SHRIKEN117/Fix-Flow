@@ -45,7 +45,7 @@ export function UserDashboard() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/tickets')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-fixflow-muted">Total Submitted</CardTitle>
             <Ticket className="h-4 w-4 text-fixflow-muted" />
@@ -59,7 +59,7 @@ export function UserDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/tickets')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-fixflow-muted">Open</CardTitle>
             <Clock className="h-4 w-4 text-amber-500" />
@@ -73,7 +73,7 @@ export function UserDashboard() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate('/tickets?status=CLOSED')}>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-fixflow-muted">Resolved</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />

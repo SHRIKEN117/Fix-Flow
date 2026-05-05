@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Upload, Paperclip, Trash2, FileText, Image } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Upload, Paperclip, Trash2, FileText, Image, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TicketAttachment, User } from '@/types';
 import { formatFileSize, formatDateTime } from '@/lib/utils';
@@ -11,6 +11,12 @@ interface AttachmentUploadProps {
   onDelete: (attachmentId: string) => Promise<void>;
 }
 
+interface PendingPreview {
+  name: string;
+  url: string;
+  isImage: boolean;
+}
+
 export function AttachmentUpload({
   attachments,
   currentUser,
@@ -18,12 +24,25 @@ export function AttachmentUpload({
   onDelete,
 }: AttachmentUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const [pending, setPending] = useState<PendingPreview | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await onUpload(file);
-    e.target.value = '';
+
+    const url = URL.createObjectURL(file);
+    setPending({ name: file.name, url, isImage: file.type.startsWith('image/') });
+    setUploading(true);
+
+    try {
+      await onUpload(file);
+    } finally {
+      URL.revokeObjectURL(url);
+      setPending(null);
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   return (
@@ -36,11 +55,7 @@ export function AttachmentUpload({
             const isImage = att.mimetype.startsWith('image/');
 
             return (
-              <li
-                key={att._id}
-                className="rounded-md border text-sm overflow-hidden"
-              >
-                {/* Image preview */}
+              <li key={att._id} className="rounded-md border text-sm overflow-hidden">
                 {isImage && att.storagePath && (
                   <a href={att.storagePath} download={att.originalName} target="_blank" rel="noreferrer">
                     <img
@@ -88,6 +103,28 @@ export function AttachmentUpload({
         </ul>
       )}
 
+      {/* Pending upload preview */}
+      {pending && (
+        <div className="rounded-md border text-sm overflow-hidden opacity-70">
+          {pending.isImage && (
+            <img
+              src={pending.url}
+              alt={pending.name}
+              className="w-full max-h-48 object-contain bg-slate-50 border-b"
+            />
+          )}
+          <div className="flex items-center gap-3 p-3">
+            {pending.isImage ? (
+              <Image className="h-4 w-4 text-blue-400 shrink-0" />
+            ) : (
+              <FileText className="h-4 w-4 text-red-400 shrink-0" />
+            )}
+            <span className="flex-1 truncate text-fixflow-muted">{pending.name}</span>
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-fixflow-muted shrink-0" />
+          </div>
+        </div>
+      )}
+
       <div>
         <input
           ref={inputRef}
@@ -100,10 +137,15 @@ export function AttachmentUpload({
           variant="outline"
           size="sm"
           onClick={() => inputRef.current?.click()}
+          disabled={uploading}
           className="gap-2"
         >
-          <Upload className="h-4 w-4" />
-          Upload File
+          {uploading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Upload className="h-4 w-4" />
+          )}
+          {uploading ? 'Uploading…' : 'Upload File'}
         </Button>
         <p className="mt-1 text-xs text-fixflow-muted">Images and PDFs up to 10MB</p>
       </div>

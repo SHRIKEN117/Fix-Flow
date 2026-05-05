@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Upload, X, ImageIcon } from 'lucide-react';
+import { Loader2, Upload, X, ImageIcon, Wand2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +22,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import { AIAnalysisSuggestion } from '@/components/tickets/AIAnalysisSuggestion';
 import { createTicketSchema, CreateTicketFormData } from '@/lib/validations';
 import { useCreateTicket } from '@/hooks/useTickets';
+import { aiApi, AI_ANALYSIS_ENABLED } from '@/api/ai.api';
+import { AIAnalysis, TicketCategory } from '@/types';
 
 interface NewTicketModalProps {
   open: boolean;
@@ -38,16 +42,21 @@ export function NewTicketModal({ open, onOpenChange }: NewTicketModalProps) {
   const [preview, setPreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
     reset,
+    control,
     formState: { errors },
   } = useForm<CreateTicketFormData>({
     resolver: zodResolver(createTicketSchema),
   });
+
+  const selectedCategory = useWatch({ control, name: 'category' });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,20 +88,38 @@ export function NewTicketModal({ open, onOpenChange }: NewTicketModalProps) {
     setPreview(null);
     setFileName(null);
     setImageError(null);
+    setAnalysis(null);
     setValue('imageBase64', '', { shouldValidate: false });
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleAnalyze = async () => {
+    if (!preview) return;
+    setIsAnalyzing(true);
+    try {
+      const result = await aiApi.analyzeImage(preview);
+      setAnalysis(result);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      toast.error(msg ?? 'Analysis failed — please try again');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const handleClose = (open: boolean) => {
     if (!open) {
       reset();
       clearImage();
+      setAnalysis(null);
     }
     onOpenChange(open);
   };
 
   const onSubmit = async (data: CreateTicketFormData) => {
-    const result = await createTicket.mutateAsync(data);
+    const result = await createTicket.mutateAsync(
+      analysis ? { ...data, aiAnalysis: analysis } : data
+    );
     handleClose(false);
     navigate(`/tickets/${result.data._id}`);
   };
@@ -135,58 +162,43 @@ export function NewTicketModal({ open, onOpenChange }: NewTicketModalProps) {
             )}
           </div>
 
-          {/* Category + Priority */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Category *</Label>
-              <Select
-                onValueChange={(v) =>
-                  setValue('category', v as CreateTicketFormData['category'], {
-                    shouldValidate: true,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="electrical">Electrical</SelectItem>
-                  <SelectItem value="plumbing">Plumbing</SelectItem>
-                  <SelectItem value="hvac">HVAC</SelectItem>
-                  <SelectItem value="structural">Structural</SelectItem>
-                  <SelectItem value="it">IT</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.category && (
-                <p className="text-xs text-destructive">{errors.category.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Priority *</Label>
-              <Select
-                onValueChange={(v) =>
-                  setValue('priority', v as CreateTicketFormData['priority'], {
-                    shouldValidate: true,
-                  })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select priority..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="critical">Critical</SelectItem>
-                </SelectContent>
-              </Select>
-              {errors.priority && (
-                <p className="text-xs text-destructive">{errors.priority.message}</p>
-              )}
-            </div>
+          {/* Category */}
+          <div className="space-y-2">
+            <Label>Category *</Label>
+            <Select
+              value={selectedCategory || ''}
+              onValueChange={(v) =>
+                setValue('category', v as CreateTicketFormData['category'], {
+                  shouldValidate: true,
+                })
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select category..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="electrical">Electrical</SelectItem>
+                <SelectItem value="plumbing">Plumbing</SelectItem>
+                <SelectItem value="hvac">HVAC</SelectItem>
+                <SelectItem value="structural">Structural</SelectItem>
+                <SelectItem value="it">IT</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.category && (
+              <p className="text-xs text-destructive">{errors.category.message}</p>
+            )}
           </div>
+
+          {/* AI Analysis suggestion card */}
+          {analysis && (
+            <AIAnalysisSuggestion
+              analysis={analysis}
+              onApply={(category: TicketCategory) =>
+                setValue('category', category, { shouldValidate: true })
+              }
+            />
+          )}
 
           {/* Location */}
           <div className="space-y-2">
@@ -208,23 +220,40 @@ export function NewTicketModal({ open, onOpenChange }: NewTicketModalProps) {
             </Label>
 
             {preview ? (
-              <div className="relative rounded-lg border overflow-hidden bg-slate-50">
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="w-full max-h-48 object-contain"
-                />
-                <div className="flex items-center justify-between px-3 py-2 bg-white border-t text-xs text-slate-600">
-                  <span className="truncate">{fileName}</span>
-                  <button
-                    type="button"
-                    onClick={clearImage}
-                    className="ml-2 shrink-0 text-slate-400 hover:text-destructive transition-colors"
-                    aria-label="Remove image"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
+              <div className="space-y-2">
+                <div className="rounded-lg border overflow-hidden bg-slate-50">
+                  <img
+                    src={preview}
+                    alt="Preview"
+                    className="w-full max-h-48 object-contain"
+                  />
+                  <div className="flex items-center justify-between px-3 py-2 bg-white border-t text-xs text-slate-600">
+                    <span className="truncate">{fileName}</span>
+                    <button
+                      type="button"
+                      onClick={clearImage}
+                      className="ml-2 shrink-0 text-slate-400 hover:text-destructive transition-colors"
+                      aria-label="Remove image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
+                {AI_ANALYSIS_ENABLED && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 border-violet-300 text-violet-700 hover:bg-violet-50"
+                    onClick={handleAnalyze}
+                    disabled={isAnalyzing}
+                  >
+                    {isAnalyzing
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Wand2 className="h-3.5 w-3.5" />}
+                    {isAnalyzing ? 'Analysing...' : analysis ? 'Re-analyse' : 'Analyse with AI'}
+                  </Button>
+                )}
               </div>
             ) : (
               <button

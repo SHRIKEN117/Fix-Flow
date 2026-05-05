@@ -31,8 +31,22 @@ export const estimatesApi = {
     return res.data;
   },
 
+  updateItem: async (
+    id: string,
+    itemId: string,
+    item: { type: string; description: string; quantity: number; unitPrice: number }
+  ) => {
+    const res = await api.patch<ApiResponse<Estimate>>(`/estimates/${id}/items/${itemId}`, item);
+    return res.data;
+  },
+
   deleteItem: async (id: string, itemId: string) => {
     const res = await api.delete<ApiResponse<null>>(`/estimates/${id}/items/${itemId}`);
+    return res.data;
+  },
+
+  submit: async (id: string) => {
+    const res = await api.patch<ApiResponse<Estimate>>(`/estimates/${id}/submit`);
     return res.data;
   },
 
@@ -43,6 +57,11 @@ export const estimatesApi = {
 
   reject: async (id: string, reason?: string) => {
     const res = await api.patch<ApiResponse<Estimate>>(`/estimates/${id}/reject`, { reason });
+    return res.data;
+  },
+
+  requestRevision: async (id: string, notes?: string) => {
+    const res = await api.patch<ApiResponse<Estimate>>(`/estimates/${id}/request-revision`, { notes });
     return res.data;
   },
 };

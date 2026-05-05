@@ -5,6 +5,7 @@ import {
   getInvoice,
   updateInvoice,
   issueInvoice,
+  convertFromEstimate,
 } from '../controllers/invoice.controller';
 import { authenticate } from '../middleware/authenticate';
 import { authorize } from '../middleware/authorize';
@@ -20,5 +21,6 @@ router.post('/', validateBody(createInvoiceSchema), createInvoice);
 router.get('/:id', getInvoice);
 router.patch('/:id', validateBody(updateInvoiceSchema), updateInvoice);
 router.patch('/:id/issue', issueInvoice);
+router.post('/from-estimate/:estimateId', convertFromEstimate);
 
 export default router;

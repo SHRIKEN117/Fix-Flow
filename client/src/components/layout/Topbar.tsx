@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { LogOut, User, ChevronDown, Bell, Menu } from 'lucide-react';
+import { LogOut, User, ChevronDown, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { NotificationBell } from '@/components/layout/NotificationBell';
 import { useAuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
@@ -33,7 +34,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
   if (!user) return null;
 
   return (
-    <header className="fixed left-0 md:left-60 right-0 top-0 z-30 flex h-16 items-center justify-between border-b bg-white px-4 sm:px-6">
+    <header className="fixed left-0 md:left-60 right-0 top-0 z-30 flex h-16 items-center justify-between border-b bg-white/95 backdrop-blur-sm shadow-sm px-4 sm:px-6">
       {/* Left: hamburger (mobile) + welcome text */}
       <div className="flex items-center gap-3">
         <button
@@ -50,9 +51,7 @@ export function Topbar({ onMenuClick }: TopbarProps) {
 
       {/* Right: actions */}
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <NotificationBell />
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

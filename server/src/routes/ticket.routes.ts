@@ -16,6 +16,7 @@ import {
   deleteAttachment,
   getTicketAudit,
 } from '../controllers/ticket.controller';
+import { submitFeedback, getFeedback } from '../controllers/feedback.controller';
 import { authenticate } from '../middleware/authenticate';
 import { authorize } from '../middleware/authorize';
 import { validateBody } from '../middleware/validateBody';
@@ -28,6 +29,7 @@ import {
   addCommentSchema,
   setPrioritySchema,
 } from '../validations/ticket.validation';
+import { submitFeedbackSchema } from '../validations/feedback.validation';
 
 const router = Router();
 
@@ -54,5 +56,9 @@ router.delete('/:id/attachments/:attachmentId', deleteAttachment);
 
 // Audit
 router.get('/:id/audit', authorize('admin'), getTicketAudit);
+
+// Feedback
+router.get('/:id/feedback', getFeedback);
+router.post('/:id/feedback', validateBody(submitFeedbackSchema), submitFeedback);
 
 export default router;

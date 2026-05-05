@@ -40,18 +40,21 @@ export function TechnicianDashboard() {
           value={metrics.totalAssigned ?? 0}
           icon={<ClipboardList className="h-5 w-5" />}
           iconColor="bg-blue-50 text-blue-600"
+          onClick={() => navigate('/tickets')}
         />
         <MetricCard
           title="In Progress"
           value={metrics.inProgressTickets ?? 0}
           icon={<Clock className="h-5 w-5" />}
           iconColor="bg-amber-50 text-amber-600"
+          onClick={() => navigate('/tickets?status=IN_PROGRESS')}
         />
         <MetricCard
           title="Completed This Month"
           value={metrics.completedThisMonth ?? 0}
           icon={<CheckCircle className="h-5 w-5" />}
           iconColor="bg-green-50 text-green-600"
+          onClick={() => navigate('/tickets?status=COMPLETED')}
         />
       </div>
 

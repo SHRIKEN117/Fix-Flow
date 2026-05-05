@@ -16,6 +16,9 @@ import invoiceRoutes from './routes/invoice.routes';
 import paymentRoutes from './routes/payment.routes';
 import slaRoutes from './routes/sla.routes';
 import dashboardRoutes from './routes/dashboard.routes';
+import aiRoutes from './routes/ai.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import notificationRoutes from './routes/notification.routes';
 
 const app = express();
 
@@ -62,6 +65,9 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/sla-policies', slaRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+if (env.aiAnalysisEnabled) app.use('/api/ai', aiRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });

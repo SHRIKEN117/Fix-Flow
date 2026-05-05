@@ -48,6 +48,18 @@ export type TicketCategory = 'electrical' | 'plumbing' | 'hvac' | 'structural' |
 export type TicketPriority = 'critical' | 'high' | 'medium' | 'low';
 export type SLAStatus = 'on_track' | 'at_risk' | 'breached';
 
+export interface AIAnalysis {
+  category: TicketCategory;
+  severity: TicketPriority;
+  issueType: string;
+  description: string;
+  estimatedRepairTime: string;
+  requiredTools: string[];
+  safetyPrecautions: string[];
+  confidence: number;
+  analyzedAt: string;
+}
+
 export interface Ticket {
   _id: string;
   ticketNumber: string;
@@ -65,6 +77,7 @@ export interface Ticket {
   slaDeadline?: string;
   slaStatus: SLAStatus;
   closedAt?: string;
+  aiAnalysis?: AIAnalysis;
   nextActions?: NextAction[];
   pipelineStages?: TicketStatus[];
   createdAt: string;
@@ -115,7 +128,7 @@ export interface SLAPolicy {
 
 // ─── Finance ─────────────────────────────────────────────────────────────────
 
-export type EstimateStatus = 'draft' | 'submitted' | 'approved' | 'rejected';
+export type EstimateStatus = 'draft' | 'submitted' | 'approved' | 'rejected' | 'revision_requested';
 export type EstimateItemType = 'labor' | 'parts' | 'overhead';
 export type InvoiceStatus = 'draft' | 'issued' | 'paid' | 'partial';
 export type PaymentMethod = 'bank_transfer' | 'cash' | 'card' | 'cheque';
@@ -138,6 +151,7 @@ export interface Estimate {
   status: EstimateStatus;
   approvedBy?: User | string;
   approvedAt?: string;
+  revisionNotes?: string;
   subtotal: number;
   tax: number;
   total: number;
@@ -174,6 +188,52 @@ export interface Payment {
   paymentDate: string;
   outstandingBalance: number;
   createdAt: string;
+}
+
+// ─── Feedback ─────────────────────────────────────────────────────────────────
+
+export interface Feedback {
+  _id: string;
+  ticketId: string;
+  submittedBy: User | string;
+  technicianId: User | string;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+export type NotificationType = 'ticket_status' | 'ticket_assigned' | 'ticket_comment';
+
+export interface AppNotification {
+  _id: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  ticketId?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
+
+export interface AnalyticsData {
+  summary: { totalTickets: number; openTickets: number };
+  byCategory: { category: string; count: number }[];
+  byStatus: { status: string; count: number }[];
+  byPriority: { priority: string; count: number }[];
+  dailyTrend: { date: string; count: number }[];
+  slaBreakdown: { on_track: number; at_risk: number; breached: number };
+  resolutionTime: { category: string; avgHours: number; count: number }[];
+  technicianPerformance: {
+    _id: string;
+    name: string;
+    resolved: number;
+    avgResolutionHours: number | null;
+    avgRating: number | null;
+    ratingCount: number;
+  }[];
 }
 
 // ─── API Response ─────────────────────────────────────────────────────────────

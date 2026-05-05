@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Ticket,
@@ -10,6 +10,7 @@ import {
   PlusCircle,
   BarChart3,
   ClipboardList,
+  TrendingUp,
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -88,7 +89,7 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Estimates',
     href: '/finance/estimates',
     icon: FileText,
-    roles: ['admin'],
+    roles: ['admin', 'technician'],
   },
   {
     label: 'Invoices',
@@ -100,6 +101,12 @@ const NAV_ITEMS: NavItem[] = [
     label: 'Payments',
     href: '/finance/payments',
     icon: CreditCard,
+    roles: ['admin'],
+  },
+  {
+    label: 'Analytics',
+    href: '/analytics',
+    icon: TrendingUp,
     roles: ['admin'],
   },
 ];
@@ -127,12 +134,24 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-4">
-        <img
-          src="/logo.png"
-          alt="FixFlow"
-          className="h-9 w-auto object-contain"
-        />
+      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3">
+        <Link
+          to={
+            user.role === 'admin'
+              ? '/dashboard'
+              : user.role === 'technician'
+              ? '/dashboard/technician'
+              : '/dashboard/user'
+          }
+          onClick={onClose}
+          className="h-full flex items-center"
+        >
+          <img
+            src="/logo.png"
+            alt="FixFlow"
+            className="h-full w-auto object-contain py-1"
+          />
+        </Link>
         {/* Close button — mobile only */}
         <button
           onClick={onClose}

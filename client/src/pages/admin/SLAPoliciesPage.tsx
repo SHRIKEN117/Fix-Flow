@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { PlusCircle, Edit2, Loader2, RefreshCw } from 'lucide-react';
+import { PlusCircle, Edit2, Loader2, RefreshCw, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,14 +21,16 @@ import {
 } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PageHeader } from '@/components/layout/PageHeader';
-import { useSLAPolicies, useCreateSLAPolicy, useTriggerSLASweep } from '@/hooks/useSLA';
+import { useSLAPolicies, useCreateSLAPolicy, useUpdateSLAPolicy, useTriggerSLASweep } from '@/hooks/useSLA';
 import { SLAPolicy } from '@/types';
 import { createSLAPolicySchema, CreateSLAPolicyFormData } from '@/lib/validations';
 
 export function SLAPoliciesPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editPolicy, setEditPolicy] = useState<SLAPolicy | null>(null);
   const { data, isLoading } = useSLAPolicies();
   const createPolicy = useCreateSLAPolicy();
+  const updatePolicy = useUpdateSLAPolicy();
   const triggerSweep = useTriggerSLASweep();
 
   const {
@@ -41,10 +43,34 @@ export function SLAPoliciesPage() {
     resolver: zodResolver(createSLAPolicySchema),
   });
 
+  const {
+    register: registerEdit,
+    handleSubmit: handleEditSubmit,
+    reset: resetEdit,
+    formState: { errors: editErrors },
+  } = useForm<{ responseTimeHours: number; resolutionTimeHours: number }>({
+    resolver: zodResolver(createSLAPolicySchema.pick({ responseTimeHours: true, resolutionTimeHours: true })),
+  });
+
+  useEffect(() => {
+    if (editPolicy) {
+      resetEdit({
+        responseTimeHours: editPolicy.responseTimeHours,
+        resolutionTimeHours: editPolicy.resolutionTimeHours,
+      });
+    }
+  }, [editPolicy, resetEdit]);
+
   const onSubmit = async (data: CreateSLAPolicyFormData) => {
     await createPolicy.mutateAsync(data);
     reset();
     setDialogOpen(false);
+  };
+
+  const onEditSubmit = async (data: { responseTimeHours: number; resolutionTimeHours: number }) => {
+    if (!editPolicy) return;
+    await updatePolicy.mutateAsync({ id: editPolicy._id, data });
+    setEditPolicy(null);
   };
 
   const PRIORITY_ORDER = ['critical', 'high', 'medium', 'low'];
@@ -95,12 +121,26 @@ export function SLAPoliciesPage() {
           return (
             <Card key={priority} className={!policy ? 'opacity-60 border-dashed' : ''}>
               <CardHeader className="pb-2">
-                <div
-                  className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize mb-1 ${PRIORITY_COLORS[priority]}`}
-                >
-                  {priority}
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div
+                      className={`inline-flex w-fit items-center rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize mb-1 ${PRIORITY_COLORS[priority]}`}
+                    >
+                      {priority}
+                    </div>
+                    <CardTitle className="text-sm capitalize">{priority} Priority</CardTitle>
+                  </div>
+                  {policy && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-fixflow-muted hover:text-fixflow-primary shrink-0"
+                      onClick={() => setEditPolicy(policy)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
-                <CardTitle className="text-sm capitalize">{priority} Priority</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {policy ? (
@@ -122,6 +162,52 @@ export function SLAPoliciesPage() {
           );
         })}
       </div>
+
+      {/* Edit Policy Dialog */}
+      <Dialog open={!!editPolicy} onOpenChange={(o) => !o && setEditPolicy(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="capitalize">Edit {editPolicy?.priority} Priority SLA</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit(onEditSubmit)} className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-responseTimeHours">Response Time (hours) *</Label>
+                <Input
+                  id="edit-responseTimeHours"
+                  type="number"
+                  min={1}
+                  {...registerEdit('responseTimeHours', { valueAsNumber: true })}
+                />
+                {editErrors.responseTimeHours && (
+                  <p className="text-xs text-destructive">{editErrors.responseTimeHours.message}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-resolutionTimeHours">Resolution Time (hours) *</Label>
+                <Input
+                  id="edit-resolutionTimeHours"
+                  type="number"
+                  min={1}
+                  {...registerEdit('resolutionTimeHours', { valueAsNumber: true })}
+                />
+                {editErrors.resolutionTimeHours && (
+                  <p className="text-xs text-destructive">{editErrors.resolutionTimeHours.message}</p>
+                )}
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setEditPolicy(null)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updatePolicy.isPending}>
+                {updatePolicy.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Create Policy Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

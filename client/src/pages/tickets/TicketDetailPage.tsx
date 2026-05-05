@@ -37,6 +37,8 @@ import {
   useDeleteAttachment,
   useTicketAudit,
 } from '@/hooks/useTickets';
+import { AIAnalysisSuggestion } from '@/components/tickets/AIAnalysisSuggestion';
+import { FeedbackCard } from '@/components/tickets/FeedbackCard';
 import { useAuthContext } from '@/context/AuthContext';
 import { usersApi } from '@/api/users.api';
 import { useQuery } from '@tanstack/react-query';
@@ -245,10 +247,11 @@ export function TicketDetailPage() {
   const { data: commentsData } = useTicketComments(id!);
   const { data: attachmentsData } = useTicketAttachments(id!);
   const { data: auditData } = useTicketAudit(id!, user?.role === 'admin');
+  const ticketCategory = (ticketData?.data as any)?.category as string | undefined;
   const { data: techniciansData, isLoading: techLoading } = useQuery({
-    queryKey: ['technicians'],
-    queryFn: () => usersApi.listTechnicians(),
-    enabled: assignModalOpen,
+    queryKey: ['technicians', ticketCategory],
+    queryFn: () => usersApi.listTechnicians(ticketCategory),
+    enabled: assignModalOpen && !!ticketCategory,
   });
 
   const updateStatus = useUpdateTicketStatus(id!);
@@ -356,6 +359,21 @@ export function TicketDetailPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* AI Analysis — shown if image was analysed at submission time */}
+          {ticket.aiAnalysis && (
+            <AIAnalysisSuggestion analysis={ticket.aiAnalysis} />
+          )}
+
+          {/* Feedback — only shown on CLOSED tickets with an assigned technician */}
+          {ticket.status === 'CLOSED' && ticket.assignedTo && (
+            <FeedbackCard
+              ticketId={ticket._id}
+              submittedBy={ticket.submittedBy}
+              assignedTo={ticket.assignedTo}
+              currentUserId={user?._id ?? ''}
+            />
+          )}
 
           {/* Tabs: Comments, Attachments, Timeline */}
           <Tabs defaultValue="comments">

@@ -59,6 +59,9 @@ const UsersPage = lazy(() =>
 const SLAPoliciesPage = lazy(() =>
   import('@/pages/admin/SLAPoliciesPage').then((m) => ({ default: m.SLAPoliciesPage }))
 );
+const AnalyticsPage = lazy(() =>
+  import('@/pages/dashboard/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage }))
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -130,17 +133,17 @@ export function AppRouter() {
 
               {/* Finance */}
               <Route path="/finance/estimates" element={
-                <ProtectedRoute allowedRoles={['admin']} />
+                <ProtectedRoute allowedRoles={['admin', 'technician']} />
               }>
                 <Route index element={<EstimatesPage />} />
               </Route>
               <Route path="/finance/estimates/new" element={
-                <ProtectedRoute allowedRoles={['admin']} />
+                <ProtectedRoute allowedRoles={['admin', 'technician']} />
               }>
                 <Route index element={<NewEstimatePage />} />
               </Route>
               <Route path="/finance/estimates/:id" element={
-                <ProtectedRoute allowedRoles={['admin']} />
+                <ProtectedRoute allowedRoles={['admin', 'technician']} />
               }>
                 <Route index element={<EstimateDetailPage />} />
               </Route>
@@ -182,6 +185,13 @@ export function AppRouter() {
                 <ProtectedRoute allowedRoles={['admin']} />
               }>
                 <Route index element={<SLAPoliciesPage />} />
+              </Route>
+
+              {/* Analytics */}
+              <Route path="/analytics" element={
+                <ProtectedRoute allowedRoles={['admin']} />
+              }>
+                <Route index element={<AnalyticsPage />} />
               </Route>
 
               {/* 404 inside shell */}

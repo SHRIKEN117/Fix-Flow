@@ -4,11 +4,14 @@ import {
   TicketComment,
   TicketAttachment,
   AuditLog,
+  AIAnalysis,
   ApiResponse,
   PaginatedResponse,
   TicketStatus,
 } from '@/types';
 import { CreateTicketFormData } from '@/lib/validations';
+
+export type CreateTicketPayload = CreateTicketFormData & { aiAnalysis?: AIAnalysis };
 
 export interface TicketFilters {
   page?: number;
@@ -29,7 +32,7 @@ export const ticketsApi = {
     return res.data;
   },
 
-  create: async (data: CreateTicketFormData) => {
+  create: async (data: CreateTicketPayload) => {
     const res = await api.post<ApiResponse<Ticket>>('/tickets', data);
     return res.data;
   },

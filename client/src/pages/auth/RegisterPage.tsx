@@ -98,7 +98,6 @@ export function RegisterPage() {
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="technician">Technician</SelectItem>
-                    <SelectItem value="finance">Finance</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>

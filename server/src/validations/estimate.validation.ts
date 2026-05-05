@@ -24,3 +24,7 @@ export const addEstimateItemSchema = estimateItemSchema;
 export const approveRejectEstimateSchema = Joi.object({
   reason: Joi.string().max(500).optional().allow(''),
 });
+
+export const requestRevisionSchema = Joi.object({
+  notes: Joi.string().max(2000).optional().allow(''),
+});

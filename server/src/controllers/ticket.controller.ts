@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Ticket, TicketStatus } from '../models/Ticket.model';
 import { User } from '../models/User.model';
 import { Technician } from '../models/Technician.model';
+import { Invoice } from '../models/Invoice.model';
 import { SLAPolicy } from '../models/SLAPolicy.model';
 import { AuditLog } from '../models/AuditLog.model';
 import { TicketComment } from '../models/TicketComment.model';
@@ -13,6 +14,7 @@ import { validateTransition, getValidTransitions, PIPELINE_STAGES } from '../uti
 import { computeSLAStatus } from '../utils/slaEngine';
 import { ApiError } from '../utils/ApiError';
 import { sendTicketCreatedEmail, sendTicketUpdateEmail } from '../utils/email';
+import { sendNotification, broadcastToAll } from '../services/socket.service';
 
 export async function listTickets(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
@@ -26,8 +28,7 @@ export async function listTickets(req: Request, res: Response, next: NextFunctio
     let filter: Record<string, unknown> = {};
 
     if (role === 'technician') {
-      const techUser = await User.findById(userId);
-      filter['assignedTo'] = techUser?._id;
+      filter['assignedTo'] = new mongoose.Types.ObjectId(userId);
     } else if (role === 'user') {
       filter['submittedBy'] = new mongoose.Types.ObjectId(userId);
     }
@@ -63,13 +64,14 @@ export async function listTickets(req: Request, res: Response, next: NextFunctio
 
 export async function createTicket(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const { title, description, category, customCategory, location, imageBase64 } = req.body as {
+    const { title, description, category, customCategory, location, imageBase64, aiAnalysis } = req.body as {
       title: string;
       description: string;
       category: string;
       customCategory?: string;
       location: string;
       imageBase64: string;
+      aiAnalysis?: Record<string, unknown>;
     };
     // Priority is always set by admin — default to 'medium' on creation
     const priority = 'medium';
@@ -95,6 +97,7 @@ export async function createTicket(req: Request, res: Response, next: NextFuncti
       submittedBy: new mongoose.Types.ObjectId(req.user!.userId),
       slaPolicy: slaPolicy?._id,
       slaDeadline,
+      ...(aiAnalysis ? { aiAnalysis } : {}),
     });
 
     await createAuditEntry({
@@ -122,6 +125,7 @@ export async function createTicket(req: Request, res: Response, next: NextFuncti
       });
     }
 
+    broadcastToAll('ticket_mutation', { action: 'created' });
     res.status(201).json({ success: true, data: populated, message: 'Ticket created' });
   } catch (error) {
     next(error);
@@ -268,6 +272,17 @@ export async function updateTicketStatus(
     }
 
     const fromStatus = ticket.status;
+
+    // Block closure if an outstanding invoice exists
+    if (newStatus === 'CLOSED') {
+      const invoice = await Invoice.findOne({ ticketId: ticket._id }).sort({ createdAt: -1 });
+      if (invoice && invoice.status !== 'paid') {
+        throw ApiError.badRequest(
+          `Cannot close ticket — invoice ${invoice.invoiceNumber} is still outstanding`
+        );
+      }
+    }
+
     ticket.status = newStatus;
 
     if (newStatus === 'CLOSED') {
@@ -282,6 +297,24 @@ export async function updateTicketStatus(
     }
 
     await ticket.save();
+
+    // Auto-update technician availability when ticket is resolved or closed
+    if (
+      (newStatus === 'COMPLETED' || newStatus === 'CLOSED') &&
+      ticket.assignedTo
+    ) {
+      const openCount = await Ticket.countDocuments({
+        assignedTo: ticket.assignedTo,
+        status: { $nin: ['COMPLETED', 'CLOSED', 'REJECTED'] },
+      });
+      await Technician.findOneAndUpdate(
+        { userId: ticket.assignedTo },
+        {
+          currentWorkload: openCount,
+          availability: openCount === 0 ? 'available' : 'busy',
+        }
+      );
+    }
 
     await createAuditEntry({
       ticketId: ticket._id,
@@ -317,6 +350,19 @@ export async function updateTicketStatus(
       });
     }
 
+    // Real-time notification to submitter
+    const submittedByObj = populated?.submittedBy as unknown as { _id: string } | null;
+    if (submittedByObj && submittedByObj._id.toString() !== userId) {
+      sendNotification({
+        userId: submittedByObj._id.toString(),
+        type: 'ticket_status',
+        title: 'Ticket status updated',
+        body: `${ticket.ticketNumber} moved to ${newStatus.replace(/_/g, ' ')}`,
+        ticketId: ticket._id.toString(),
+      }).catch(() => {});
+    }
+
+    broadcastToAll('ticket_mutation', { action: 'status_changed' });
     res.json({ success: true, data: populated, message: `Status updated to ${newStatus}` });
   } catch (error) {
     next(error);
@@ -388,6 +434,16 @@ export async function assignTicket(req: Request, res: Response, next: NextFuncti
       });
     }
 
+    // Real-time notification to the assigned technician
+    sendNotification({
+      userId: technicianId,
+      type: 'ticket_assigned',
+      title: 'New ticket assigned to you',
+      body: `${ticket.ticketNumber}: ${ticket.title}`,
+      ticketId: ticket._id.toString(),
+    }).catch(() => {});
+
+    broadcastToAll('ticket_mutation', { action: 'assigned' });
     res.json({ success: true, data: populated, message: 'Technician assigned' });
   } catch (error) {
     next(error);
@@ -433,6 +489,24 @@ export async function addComment(req: Request, res: Response, next: NextFunction
       'authorId',
       'name email role'
     );
+
+    // Notify the other party: if commenter is the submitter, notify technician; vice versa
+    const notifyUserId =
+      ticket.assignedTo && ticket.assignedTo.toString() !== userId
+        ? ticket.assignedTo.toString()
+        : ticket.submittedBy.toString() !== userId
+          ? ticket.submittedBy.toString()
+          : null;
+
+    if (notifyUserId) {
+      sendNotification({
+        userId: notifyUserId,
+        type: 'ticket_comment',
+        title: 'New comment on your ticket',
+        body: `${ticket.ticketNumber}: ${body.slice(0, 80)}${body.length > 80 ? '…' : ''}`,
+        ticketId: ticket._id.toString(),
+      }).catch(() => {});
+    }
 
     res.status(201).json({ success: true, data: populated });
   } catch (error) {

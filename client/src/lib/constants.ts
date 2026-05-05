@@ -58,6 +58,15 @@ export const ESTIMATE_STATUS_COLORS: Record<string, string> = {
   submitted: 'bg-blue-100 text-blue-700',
   approved: 'bg-green-100 text-green-700',
   rejected: 'bg-red-100 text-red-700',
+  revision_requested: 'bg-amber-100 text-amber-700',
+};
+
+export const ESTIMATE_STATUS_LABELS: Record<string, string> = {
+  draft: 'Draft',
+  submitted: 'Pending Review',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  revision_requested: 'Revision Requested',
 };
 
 export const INVOICE_STATUS_COLORS: Record<string, string> = {
