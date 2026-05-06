@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { PlusCircle, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,17 +44,27 @@ const SLA_LABELS: Record<string, string> = {
 
 export function TicketListPage() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuthContext();
-  const initialStatus = searchParams.get('status');
-  const initialSlaStatus = searchParams.get('slaStatus');
-  const [statusFilter, setStatusFilter] = useState<string>(
-    initialStatus && ALL_STATUSES.includes(initialStatus as TicketStatus) ? initialStatus : ALL_SENTINEL
-  );
-  const [priorityFilter, setPriorityFilter] = useState<string>(ALL_SENTINEL);
-  const [slaStatusFilter, setSlaStatusFilter] = useState<string>(
-    initialSlaStatus && SLA_STATUSES.includes(initialSlaStatus as typeof SLA_STATUSES[number]) ? initialSlaStatus : ALL_SENTINEL
-  );
+
+  const rawStatus = searchParams.get('status') ?? '';
+  const rawSla = searchParams.get('slaStatus') ?? '';
+  const rawPriority = searchParams.get('priority') ?? '';
+
+  const statusFilter = ALL_STATUSES.includes(rawStatus as TicketStatus) ? rawStatus : ALL_SENTINEL;
+  const slaStatusFilter = SLA_STATUSES.includes(rawSla as typeof SLA_STATUSES[number]) ? rawSla : ALL_SENTINEL;
+  const priorityFilter = rawPriority || ALL_SENTINEL;
+
+  const setFilter = (key: string, value: string) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (value === ALL_SENTINEL) next.delete(key);
+      else next.set(key, value);
+      return next;
+    });
+  };
+
+  const clearFilters = () => setSearchParams({});
 
   const activeStatus = statusFilter === ALL_SENTINEL ? undefined : statusFilter as TicketStatus;
   const activePriority = priorityFilter === ALL_SENTINEL ? undefined : priorityFilter;
@@ -88,7 +97,7 @@ export function TicketListPage() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <Select value={statusFilter} onValueChange={(v) => setFilter('status', v)}>
           <SelectTrigger className="w-40 sm:w-44">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
@@ -102,7 +111,7 @@ export function TicketListPage() {
           </SelectContent>
         </Select>
 
-        <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+        <Select value={priorityFilter} onValueChange={(v) => setFilter('priority', v)}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="All Priorities" />
           </SelectTrigger>
@@ -115,7 +124,7 @@ export function TicketListPage() {
           </SelectContent>
         </Select>
 
-        <Select value={slaStatusFilter} onValueChange={setSlaStatusFilter}>
+        <Select value={slaStatusFilter} onValueChange={(v) => setFilter('slaStatus', v)}>
           <SelectTrigger className="w-36">
             <SelectValue placeholder="All SLA" />
           </SelectTrigger>
@@ -128,11 +137,7 @@ export function TicketListPage() {
         </Select>
 
         {(statusFilter !== ALL_SENTINEL || priorityFilter !== ALL_SENTINEL || slaStatusFilter !== ALL_SENTINEL) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setStatusFilter(ALL_SENTINEL); setPriorityFilter(ALL_SENTINEL); setSlaStatusFilter(ALL_SENTINEL); }}
-          >
+          <Button variant="ghost" size="sm" onClick={clearFilters}>
             Clear
           </Button>
         )}

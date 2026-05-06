@@ -44,7 +44,7 @@ export function LoginPage() {
           <img
             src="/logo.png"
             alt="FixFlow"
-            className="h-16 w-auto object-contain"
+            className="h-28 w-auto object-contain"
           />
         </div>
 

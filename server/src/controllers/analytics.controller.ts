@@ -109,6 +109,7 @@ export async function getAnalytics(_req: Request, res: Response, next: NextFunct
           },
         },
         { $unwind: '$user' },
+        { $match: { 'user.role': 'technician' } },
         {
           $lookup: {
             from: 'feedbacks',

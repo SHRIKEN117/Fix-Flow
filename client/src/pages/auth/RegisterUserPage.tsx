@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Wrench, ArrowLeft, User } from 'lucide-react';
+import { Loader2, ArrowLeft, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -43,14 +43,8 @@ export function RegisterUserPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-fixflow-primary shadow-lg">
-            <Wrench className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">FixFlow</h1>
-            <p className="text-xs text-slate-400">Maintenance Management</p>
-          </div>
+        <div className="flex justify-center mb-8">
+          <img src="/logo.png" alt="FixFlow" className="h-28 w-auto object-contain" />
         </div>
 
         <Card className="border-0 shadow-2xl">

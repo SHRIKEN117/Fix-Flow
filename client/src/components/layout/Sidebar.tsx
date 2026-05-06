@@ -12,6 +12,7 @@ import {
   ClipboardList,
   TrendingUp,
   X,
+  User,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthContext } from '@/context/AuthContext';
@@ -109,6 +110,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: TrendingUp,
     roles: ['admin'],
   },
+  {
+    label: 'Profile',
+    href: '/profile',
+    icon: User,
+    roles: ['admin', 'technician', 'user'],
+  },
 ];
 
 interface SidebarProps {
@@ -134,7 +141,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       )}
     >
       {/* Logo */}
-      <div className="flex h-16 items-center justify-between border-b border-sidebar-border px-3">
+      <div className="flex h-20 items-center justify-between border-b border-sidebar-border px-3">
         <Link
           to={
             user.role === 'admin'
@@ -149,7 +156,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
           <img
             src="/logo.png"
             alt="FixFlow"
-            className="h-full w-auto object-contain py-1"
+            className="h-full w-auto object-contain"
           />
         </Link>
         {/* Close button — mobile only */}
@@ -197,9 +204,13 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* User info at bottom */}
       <div className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-fixflow-primary text-xs font-semibold text-white uppercase">
+          <Link
+            to="/profile"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-fixflow-primary text-xs font-semibold text-white uppercase hover:opacity-80 transition-opacity"
+          >
             {user.name.charAt(0)}
-          </div>
+          </Link>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">{user.name}</p>
             <p className="truncate text-xs text-sidebar-foreground capitalize">{user.role}</p>

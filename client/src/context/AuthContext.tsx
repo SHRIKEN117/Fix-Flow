@@ -20,25 +20,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
 
-  const fetchCurrentUser = useCallback(async () => {
-    try {
-      const response = await authApi.getMe();
-      setUser(response.data);
-      // Warm the ticket cache immediately so the list page renders without a second loading state
-      queryClient.prefetchQuery({
-        queryKey: ['tickets', { limit: 50 }],
-        queryFn: () => ticketsApi.list({ limit: 50 }),
-      });
-    } catch {
-      setUser(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [queryClient]);
-
   useEffect(() => {
-    fetchCurrentUser();
-  }, [fetchCurrentUser]);
+    let cancelled = false;
+
+    authApi.getMe()
+      .then((response) => {
+        if (cancelled) return;
+        setUser(response.data);
+        queryClient.prefetchQuery({
+          queryKey: ['tickets', { limit: 50 }],
+          queryFn: () => ticketsApi.list({ limit: 50 }),
+        });
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUser(null);
+      })
+      .finally(() => {
+        if (cancelled) return;
+        setIsLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [queryClient]);
 
   const login = useCallback(async (email: string, password: string) => {
     const response = await authApi.login({ email, password });

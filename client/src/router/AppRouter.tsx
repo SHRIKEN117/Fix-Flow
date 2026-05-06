@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -62,6 +62,9 @@ const SLAPoliciesPage = lazy(() =>
 const AnalyticsPage = lazy(() =>
   import('@/pages/dashboard/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage }))
 );
+const ProfilePage = lazy(() =>
+  import('@/pages/profile/ProfilePage').then((m) => ({ default: m.ProfilePage }))
+);
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage }))
 );
@@ -88,16 +91,29 @@ function DashboardRedirect() {
   return <Navigate to="/dashboard/admin" replace />;
 }
 
+function PublicOnlyRoute({ children }: { children: ReactNode }) {
+  const { isAuthenticated, isLoading, user } = useAuthContext();
+  if (isLoading) return null;
+  if (isAuthenticated && user) {
+    const dest =
+      user.role === 'admin' ? '/dashboard/admin' :
+      user.role === 'technician' ? '/dashboard/technician' :
+      '/dashboard/user';
+    return <Navigate to={dest} replace />;
+  }
+  return <>{children}</>;
+}
+
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          {/* Public */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterLandingPage />} />
-          <Route path="/register/user" element={<RegisterUserPage />} />
-          <Route path="/register/technician" element={<RegisterTechnicianPage />} />
+          {/* Public — redirect to dashboard if already logged in */}
+          <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
+          <Route path="/register" element={<PublicOnlyRoute><RegisterLandingPage /></PublicOnlyRoute>} />
+          <Route path="/register/user" element={<PublicOnlyRoute><RegisterUserPage /></PublicOnlyRoute>} />
+          <Route path="/register/technician" element={<PublicOnlyRoute><RegisterTechnicianPage /></PublicOnlyRoute>} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
 
           {/* All authenticated routes live inside AppShell */}
@@ -194,10 +210,13 @@ export function AppRouter() {
                 <Route index element={<AnalyticsPage />} />
               </Route>
 
-              {/* 404 inside shell */}
-              <Route path="*" element={<NotFoundPage />} />
+              {/* Profile */}
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
           </Route>
+
+          {/* 404 — must be outside ProtectedRoute so it never triggers auth redirect */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>
     </BrowserRouter>
