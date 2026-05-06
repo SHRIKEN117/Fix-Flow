@@ -20,10 +20,11 @@ FixFlow is a full-stack maintenance ticket management platform built for organiz
 12. [API Reference](#api-reference)
 13. [Dashboard & Reporting](#dashboard--reporting)
 14. [Audit Logging](#audit-logging)
-15. [Environment Variables](#environment-variables)
-16. [Local Development Setup](#local-development-setup)
-17. [Deployment](#deployment)
-18. [Security](#security)
+15. [Real-Time Events (Socket.io)](#real-time-events-socketio)
+16. [Environment Variables](#environment-variables)
+17. [Local Development Setup](#local-development-setup)
+18. [Deployment](#deployment)
+19. [Security](#security)
 
 ---
 
@@ -67,6 +68,7 @@ FixFlow manages the full lifecycle of maintenance requests in a facility or orga
 | morgan | 1.10 | HTTP request logging |
 | express-rate-limit | 7.2 | Rate limiting |
 | dotenv | 16.4 | Environment configuration |
+| socket.io | 4.x | Real-time bidirectional events |
 
 ### Frontend
 
@@ -87,6 +89,7 @@ FixFlow manages the full lifecycle of maintenance requests in a facility or orga
 | Sonner | 1.4 | Toast notifications |
 | date-fns | 3.6 | Date formatting utilities |
 | cmdk | 1.0 | Command palette |
+| socket.io-client | 4.x | Real-time client for Socket.io |
 
 ---
 
@@ -122,7 +125,9 @@ FixFlow manages the full lifecycle of maintenance requests in a facility or orga
 │                         │                                       │
 │  ┌──────────────────────▼──────────────────────────────────┐    │
 │  │  /api/auth  /api/tickets  /api/estimates  /api/invoices  │   │
-│  │  /api/payments  /api/users  /api/sla-policies  /api/dash │   │
+│  │  /api/payments  /api/users  /api/sla-policies            │   │
+│  │  /api/dashboard  /api/analytics  /api/notifications      │   │
+│  │  /api/ai  (conditional on AI_ANALYSIS_ENABLED)           │   │
 │  └──────────────────────────────────────────────────────────┘   │
 │                         │                                       │
 │  ┌──────────────────────▼───────────────────────────────────┐   │
@@ -130,13 +135,13 @@ FixFlow manages the full lifecycle of maintenance requests in a facility or orga
 │  └──────────────────────────────────────────────────────────┘   │
 │                         │                                       │
 │  ┌──────────────────────▼───────────────────────────────────┐   │
-│  │         Controllers → Services → Mongoose Models          │   │
+│  │    Controllers → Services → Mongoose Models               │   │
 │  └──────────────────────────────────────────────────────────┘   │
-│                         │                              │        │
-│               ┌──────────────────┐         ┌──────────────────┐ │
-│               │  MongoDB Atlas   │         │  Nodemailer SMTP  │ │
-│               │  (12 collections)│         │  (HTML templates) │ │
-│               └──────────────────┘         └──────────────────┘ │
+│         │                        │                    │         │
+│  ┌──────────────┐   ┌──────────────────┐  ┌─────────────────┐  │
+│  │ MongoDB Atlas│   │ Socket.io Server │  │ Nodemailer SMTP │  │
+│  │(12 collections)  │ (real-time push) │  │(HTML templates) │  │
+│  └──────────────┘   └──────────────────┘  └─────────────────┘  │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │  node-cron SLA Sweep (every 15 min)                      │   │
@@ -153,13 +158,19 @@ Fix-Flow/
 ├── client/                         # React + Vite frontend
 │   ├── src/
 │   │   ├── api/                    # Axios API functions
+│   │   │   ├── axios.ts            # Axios instance (base URL, credentials)
 │   │   │   ├── auth.api.ts
 │   │   │   ├── tickets.api.ts
 │   │   │   ├── estimates.api.ts
 │   │   │   ├── invoices.api.ts
 │   │   │   ├── payments.api.ts
 │   │   │   ├── sla.api.ts
-│   │   │   └── dashboard.api.ts
+│   │   │   ├── dashboard.api.ts
+│   │   │   ├── analytics.api.ts
+│   │   │   ├── notifications.api.ts
+│   │   │   ├── ai.api.ts
+│   │   │   ├── feedback.api.ts
+│   │   │   └── users.api.ts
 │   │   ├── components/
 │   │   │   ├── layout/             # AppShell, Sidebar, Topbar, PageHeader
 │   │   │   ├── tickets/            # NewTicketModal, etc.
@@ -214,7 +225,11 @@ Fix-Flow/
     │   │   ├── invoice.controller.ts
     │   │   ├── payment.controller.ts
     │   │   ├── sla.controller.ts
-    │   │   └── dashboard.controller.ts
+    │   │   ├── dashboard.controller.ts
+    │   │   ├── analytics.controller.ts
+    │   │   ├── notification.controller.ts
+    │   │   ├── feedback.controller.ts
+    │   │   └── ai.controller.ts
     │   ├── routes/
     │   │   ├── auth.routes.ts
     │   │   ├── user.routes.ts
@@ -223,7 +238,12 @@ Fix-Flow/
     │   │   ├── invoice.routes.ts
     │   │   ├── payment.routes.ts
     │   │   ├── sla.routes.ts
-    │   │   └── dashboard.routes.ts
+    │   │   ├── dashboard.routes.ts
+    │   │   ├── analytics.routes.ts
+    │   │   ├── notification.routes.ts
+    │   │   └── ai.routes.ts
+    │   ├── services/
+    │   │   └── socket.service.ts       # Socket.io real-time notification service
     │   ├── middleware/
     │   │   ├── authenticate.ts     # JWT cookie validation
     │   │   ├── authorize.ts        # Role-based access
@@ -290,7 +310,7 @@ FixFlow has three user roles:
 | Update ticket status | ✅ | ✅ (limited) | ❌ |
 | Manage users | ✅ | ❌ | ❌ |
 | Manage SLA policies | ✅ | ❌ | ❌ |
-| Create estimates | ✅ | ❌ | ❌ |
+| Create estimates | ✅ | ✅ (own tickets) | ❌ |
 | Create invoices | ✅ | ❌ | ❌ |
 | Record payments | ✅ | ❌ | ❌ |
 | View admin dashboard | ✅ | ❌ | ❌ |
@@ -386,6 +406,7 @@ All subsequent requests send cookie automatically
 | SUBMITTED | REJECTED | admin |
 | UNDER_REVIEW | APPROVED | admin |
 | UNDER_REVIEW | REJECTED | admin |
+| APPROVED | ASSIGNED | admin (via `/tickets/:id/assign`) |
 | APPROVED | ASSIGNED | admin |
 | ASSIGNED | IN_PROGRESS | technician |
 | IN_PROGRESS | ON_HOLD | technician, admin |
@@ -743,6 +764,32 @@ Base URL: `/api`
 | GET | `/dashboard/summary` | Admin | KPIs, distributions, revenue |
 | GET | `/dashboard/technician` | Admin / Technician | Workload overview |
 
+### Analytics (Admin only)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| GET | `/analytics` | Aggregated ticket, SLA, technician, and category metrics |
+
+### Notifications
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/notifications` | Required | List own unread notifications |
+| PATCH | `/notifications/read-all` | Required | Mark all notifications as read |
+
+### AI Analysis
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/ai/analyze-image` | Required | Analyze maintenance image via Claude (`AI_ANALYSIS_ENABLED=true` required) |
+
+### Ticket Feedback
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/tickets/:id/feedback` | Required | Get feedback for a ticket |
+| POST | `/tickets/:id/feedback` | Required | Submit rating and comment for a resolved ticket |
+
 ### Health Check
 
 | Method | Endpoint | Auth | Description |
@@ -832,6 +879,34 @@ AuditLog {
 
 ---
 
+## Real-Time Events (Socket.io)
+
+The server runs a Socket.io instance alongside Express. Clients connect to `http://localhost:5000` (or the deployed server URL) and join a personal room keyed by their user ID upon authentication.
+
+### Events emitted by the server
+
+| Event | Trigger | Audience |
+|---|---|---|
+| `ticket_mutation` | Any ticket created, status changed, or assigned | All connected clients (broadcast) |
+| `ticket_status` | Ticket status changes | Submitter only |
+| `ticket_assigned` | Ticket assigned to a technician | Assigned technician only |
+| `ticket_comment` | Comment added to a ticket | The other party (submitter or technician) |
+
+### Payload shape (user-targeted events)
+
+```json
+{
+  "type": "ticket_assigned",
+  "title": "New ticket assigned to you",
+  "body": "TKT-2026-0001: Leaking pipe in Room 204",
+  "ticketId": "664b2a..."
+}
+```
+
+Notifications are persisted in MongoDB (`Notification` collection) and can be fetched via `GET /api/notifications`.
+
+---
+
 ## Environment Variables
 
 ### Server (`.env`)
@@ -849,12 +924,14 @@ AuditLog {
 | `SMTP_PORT` | ❌ | 587 | 587 = STARTTLS, 465 = SSL |
 | `SMTP_USER` | ❌ | — | Sender email address |
 | `SMTP_PASS` | ❌ | — | Gmail App Password |
+| `ANTHROPIC_API_KEY` | ❌ | — | API key for AI image analysis (Anthropic Claude) |
+| `AI_ANALYSIS_ENABLED` | ❌ | `false` | Set to `true` to enable `/api/ai` endpoint |
 
 ### Client (`.env`)
 
 | Variable | Required | Description |
 |---|---|---|
-| `VITE_API_URL` | ✅ | Backend API base URL |
+| `VITE_API_BASE_URL` | ✅ | Backend API base URL (e.g. `http://localhost:5000/api`) |
 
 ---
 
@@ -870,7 +947,7 @@ AuditLog {
 ### Install
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/SHRIKEN117/Fix-Flow.git
 cd Fix-Flow
 
 cd server && npm install
@@ -891,12 +968,16 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your@gmail.com
 SMTP_PASS=xxxx xxxx xxxx xxxx
+
+# Optional AI analysis
+ANTHROPIC_API_KEY=sk-ant-...
+AI_ANALYSIS_ENABLED=false
 ```
 
 ### Client `.env`
 
 ```env
-VITE_API_URL=http://localhost:5000
+VITE_API_BASE_URL=http://localhost:5000/api
 ```
 
 ### Seed Database
@@ -995,21 +1076,3 @@ SMTP_PASS
 | File validation | Mimetype allowlist + 10 MB size limit |
 | Rate limiting | `express-rate-limit` available per route |
 
----
-
-## Diagrams to Generate from This README
-
-The following diagrams can be created directly from the information in this file:
-
-| Diagram | Source Section |
-|---|---|
-| System Architecture | [Architecture Overview](#architecture-overview) |
-| Entity Relationship Diagram (ERD) | [Data Models & Relationships](#data-models--relationships) |
-| Ticket State Machine | [Ticket Lifecycle & Workflow](#ticket-lifecycle--workflow) |
-| Authentication Sequence | [Authentication Flow](#authentication-flow) |
-| Financial Workflow | [Financial Workflow](#financial-workflow) |
-| SLA Sweep Flow | [SLA System](#sla-system) |
-| Role Permission Matrix | [User Roles & Permissions](#user-roles--permissions) |
-| API Route Map | [API Reference](#api-reference) |
-| Email Template Layout | [Email Notification System](#email-notification-system) |
-| Deployment Architecture | [Deployment](#deployment) |

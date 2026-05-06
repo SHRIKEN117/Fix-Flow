@@ -1,8 +1,10 @@
 # FixFlow — Deployment & Installation Manual
 
 **Version:** 1.0.0  
+**Date:** May 2026  
 **Stack:** MongoDB · Express.js · React · Node.js (MERN) + TypeScript  
-**Architecture:** Monorepo with separate `/client` (Vite/React) and `/server` (Node.js/Express) packages
+**Architecture:** Monorepo with separate `/client` (Vite/React) and `/server` (Node.js/Express) packages  
+**Repository:** https://github.com/SHRIKEN117/Fix-Flow
 
 ---
 
@@ -21,6 +23,7 @@
 11. [Optional Features](#11-optional-features)
 12. [Troubleshooting](#12-troubleshooting)
 13. [Project Structure Reference](#13-project-structure-reference)
+14. [Feedback & Version Information](#14-feedback--version-information)
 
 ---
 
@@ -174,11 +177,9 @@ cd ~/Documents
 ### 5.3 Clone the Repository
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/SHRIKEN117/Fix-Flow.git
 cd Fix-Flow
 ```
-
-> Replace `<your-repository-url>` with the actual Git remote URL of the repository.
 
 ### 5.4 Open in VS Code
 
@@ -571,3 +572,21 @@ Fix-Flow/
 ## Support
 
 For issues or questions, open an issue in the project repository or contact the development team.
+
+---
+
+## 14. Feedback & Version Information
+
+**Date:** May 2026  
+**Version:** 1.0.0
+
+We value your feedback and are committed to improving both the deployment process and the application itself. If you encounter issues during setup, find documentation gaps, or have suggestions, please reach out.
+
+**Report issues:** https://github.com/SHRIKEN117/Fix-Flow/issues  
+**Email:** shriken117@gmail.com
+
+### Version History
+
+| Version | Date | Notes |
+|---------|------|-------|
+| 1.0.0 | May 2026 | Initial release — MERN stack, role-based access, real-time Socket.io, SLA enforcement, estimates & invoices, optional AI analysis |
